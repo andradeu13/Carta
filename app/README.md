@@ -2,6 +2,9 @@
 
 App instalable (PWA) con misiones diarias, rachas, XP, mapa de montaña (Cotopaxi → Cayambe), bloque de Iguana (20:00–22:00) y planificación semanal editable. Todo se guarda en tu dispositivo.
 
+## Diseño
+La interfaz usa el sistema de diseño **Cumbre** (`ds/`): `tokens.json` es la fuente, `tokens.css` está compilado de ahí (claro y oscuro) y `components.css` trae botones, tarjetas, gráficas de cápsula, caritas de ánimo y banners con sol. El libro de marca está en `ds/README.md`.
+
 ## Probar en local
 ```
 cd app && python3 -m http.server 8000
