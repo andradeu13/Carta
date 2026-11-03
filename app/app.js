@@ -28,21 +28,41 @@ const dayNum = () => Math.floor((parse(todayStr()) - new Date(2026, 0, 1)) / 864
 const uid = () => 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
 let C = null;           // contenido (data/content.json)
-let S = load();         // estado
+let S = fresh();        // estado (se carga al iniciar)
 let tab = 'hoy';
+let showAll = false;    // en modo mínimo, ver todo el día
 let selDay = null;      // día elegido en la tira semanal
 let progRange = 7;      // rango de Progreso: 7 o 30 días
 let wiz = null;         // asistente de planificación semanal
 let timerRef = null;
 
 function fresh() {
-  return { v: 1, xp: 0, days: {}, plan: null, history: {}, settings: { bedtime: '23:00', redes: 45, notif: false } };
+  return { v: 1, xp: 0, days: {}, plan: null, history: {}, settings: { bedtime: '23:00', redes: 45, notif: false }, meta: {}, learned: null, claude: null };
 }
-function load() {
-  try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.v === 1) return Object.assign(fresh(), s); } catch (e) { /* sin almacenamiento */ }
-  return fresh();
+function load() { return Store.loadLocal(fresh); }
+function save() {
+  if (C) { try { S.learned = Learn.compute(S, C); } catch (e) { /* sin modelo */ } }
+  Store.persist(S);
 }
-function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* ignorar */ } }
+const nightCap = () => (S.learned && S.learned.night && S.learned.night.cap) || NIGHT_LIMIT;
+const hourNow = () => { const n = new Date(); return +(n.getHours() + n.getMinutes() / 60).toFixed(2); };
+// Fusiona un documento que llega de la base de datos (gana el más reciente).
+function applyRemote(col, key, o) {
+  const newer = (a, b) => (a.u || 0) > ((b && b.u) || 0);
+  if (col === 'days') { if (!S.days[key] || newer(o, S.days[key])) { S.days[key] = o; return true; } return false; }
+  if (col === 'plans') {
+    if (!S.plan || key > S.plan.weekStart) { if (S.plan) S.history[S.plan.weekStart] = S.plan; S.plan = o; delete S.history[key]; return true; }
+    if (S.plan.weekStart === key) { if (newer(o, S.plan)) { S.plan = o; return true; } return false; }
+    if (!S.history[key] || newer(o, S.history[key])) { S.history[key] = o; return true; }
+    return false;
+  }
+  if (col === 'meta') { if (newer(o, S.meta)) { S.xp = o.xp || 0; S.settings = Object.assign(S.settings, o.settings || {}); S.meta = o; return true; } return false; }
+  if (col === 'insights') {
+    if (key === 'claude' && newer(o, S.claude)) { S.claude = o; return true; }
+    if (key === 'learned' && !S.learned) { S.learned = o; return true; }
+  }
+  return false;
+}
 function rec(ds) {
   if (!S.days[ds]) S.days[ds] = { habits: {}, tasksDone: 0, mood: 0, sent: 0, replies: 0, demos: 0, sales: 0, revenue: 0 };
   return S.days[ds];
@@ -115,11 +135,12 @@ function coachMsg() {
   if (r.mood && r.mood <= 2) mode = 'empathic';
   else if (late > 0 || (st.n === 0 && Object.keys(S.days).filter(counted).length > 0)) mode = 'direct';
   else if (counted(todayStr()) && st.n >= 3) mode = 'celebrate';
-  else mode = 'socratic';
+  else mode = (S.learned && S.learned.tone && S.learned.tone.best && S.learned.tone.best !== 'empathic') ? S.learned.tone.best : (S.claude && S.claude.tone && ['direct', 'socratic'].includes(S.claude.tone) ? S.claude.tone : 'socratic');
   const list = C.coach[mode];
   let msg = list[dayNum() % list.length].replace('{streak}', st.n).replace('{xp}', S.xp);
   if (mode === 'direct' && late) msg += ` Tienes ${late} tarea${late > 1 ? 's' : ''} atrasada${late > 1 ? 's' : ''}.`;
   const label = { direct: 'Directo', empathic: 'Contigo', socratic: 'Pregunta', celebrate: 'Celebrando' }[mode];
+  if (!r.coach) r.coach = mode;   // se guarda con el siguiente cambio; sirve para aprender qué tono te funciona
   return { mode, msg, label };
 }
 
@@ -177,15 +198,15 @@ const SLOT = {
 function habitById(id) { return C.habits.find(h => h.id === id); }
 function setHabit(id, on) {
   const r = rec(todayStr()), h = habitById(id);
-  if (on && !r.habits[id]) { r.habits[id] = true; addXP(h.xp); }
-  else if (!on && r.habits[id]) { delete r.habits[id]; addXP(-h.xp); }
+  if (on && !r.habits[id]) { r.habits[id] = true; (r.times = r.times || {})[id] = hourNow(); addXP(h.xp); }
+  else if (!on && r.habits[id]) { delete r.habits[id]; if (r.times) delete r.times[id]; addXP(-h.xp); }
   save(); render();
 }
 function setTask(id, on) {
   const p = planCurrent(); const t = p && p.tasks.find(x => x.id === id); if (!t) return;
   const r = rec(todayStr());
   const xp = 20 + Math.round((t.mins || 0) / 5);
-  if (on && !t.done) { t.done = todayStr(); r.tasksDone = (r.tasksDone || 0) + 1; addXP(xp); }
+  if (on && !t.done) { t.done = todayStr(); r.tasksDone = (r.tasksDone || 0) + 1; (r.times = r.times || {})[id] = hourNow(); addXP(xp); }
   else if (!on && t.done) { const dr = rec(t.done); dr.tasksDone = Math.max(0, (dr.tasksDone || 0) - 1); t.done = null; addXP(-xp); }
   save(); render();
 }
@@ -238,21 +259,43 @@ function bannerHtml() {
 function moodHtml(r) {
   return `<p class="cap">¿Cómo vienes hoy?</p><div class="cb-moods" role="radiogroup" aria-label="Estado de ánimo" style="justify-content:space-between">${MOODS.map(m => `<button class="cb-mood${r.mood === m.n ? ' is-on' : ''}" role="radio" aria-checked="${r.mood === m.n}" data-act="mood" data-id="${m.n}"><span class="cb-face${MOOD_FACE[m.k]}"></span>${m.t}</button>`).join('')}</div>`;
 }
+function leverHabit(r) {
+  const l = Learn.lever(S.learned, C, r.habits);
+  if (l) return { habit: l.habit, why: `Cuando ${Learn.label(l.habit.id)}, tu ánimo es bueno con más frecuencia (+${Math.round(l.lift * 100)} puntos).` };
+  const f = S.claude && S.claude.focus && S.claude.focus.map(id => habitById(id)).find(h => h && !r.habits[h.id]);
+  return f ? { habit: f, why: 'Claude la señaló como tu mejor punto de apoyo esta semana.' } : null;
+}
+function essentials(r, tasks) {
+  const out = [], lev = leverHabit(r);
+  if (lev) out.push(habitMission(lev.habit));
+  const pend = tasks.filter(t => !t.done && t.block === 'pm')[0];
+  if (pend) out.push(taskMission(pend));
+  ['prior', 'med', 'sleep', 'redes'].forEach(id => { if (out.length < 3 && !out.some(m => m.id === id)) out.push(habitMission(habitById(id))); });
+  return out.slice(0, 3);
+}
 function viewHoy() {
   const ds = todayStr(), r = rec(ds), cm = coachMsg();
   const dato = C.datos[dayNum() % C.datos.length];
   const p = planCurrent();
   const tasks = p ? p.tasks.filter(t => t.day === todayIdx()) : [];
   const am = tasks.filter(t => t.block !== 'pm'), pm = tasks.filter(t => t.block === 'pm');
-  const slot = s => C.habits.filter(h => h.slot === s).map(habitMission).map(missionRow).join('');
+  const foc = (S.claude && S.claude.focus) || [];
+  const slot = s => C.habits.filter(h => h.slot === s).sort((a, b) => (foc.includes(b.id) - foc.includes(a.id))).map(habitMission).map(missionRow).join('');
   const notes = r.notes || {};
   let h = header() + weekStrip() + dayInfo() + bannerHtml();
   h += moodHtml(r);
   h += `<div class="coachcard coachcard--${cm.mode}"><span class="who">Coach · ${cm.label}</span><p>${esc(cm.msg)}</p></div>`;
+  const lev = leverHabit(r);
+  const minimal = !!(S.learned && S.learned.load && S.learned.load.minimal) && !showAll;
   if (!S.settings.notif) h += `<div class="cb-reminder" style="margin:var(--space-4) 0"><div><h3 class="cb-reminder__title">Activa tus recordatorios</h3><p class="cb-reminder__text">Que no se te pase la rutina de la mañana ni el bloque de Iguana.</p><button class="cb-btn cb-btn--brown cb-btn--sm" data-act="notif">Activar ahora</button></div>${BELL}</div>`;
   if (!p) h += `<div class="card"><b>Aún no tienes plan esta semana</b><p class="mut">Tarda 15 minutos y define tus tareas.</p><button class="cb-btn" data-act="wiz">Planificar mi semana</button></div>`;
   h += `<div class="card"><div class="row" style="gap:8px"><b>${ico('chat', 'cb-ico--sm')} Para conversar hoy</b></div><p>${esc(dato.t)}</p><p><i>«${esc(dato.q)}»</i></p></div>`;
   h += `<div class="sec-h"><h2>Diario rápido</h2></div><div class="cb-jrow">${JOURNAL.map((j, i) => `<button class="cb-jcard${j.tone}" data-act="jr" data-id="${i}"><span><span class="cb-jcard__title">${j.t}</span><span class="cb-jcard__text">${notes[j.id] ? esc(notes[j.id]).slice(0, 60) : j.q}</span></span><span class="cb-jcard__foot">${notes[j.id] ? 'Guardado' : 'Hoy'}<span class="cb-tag">${j.tag}</span></span></button>`).join('')}</div>`;
+  if (minimal) {
+    h += `<div class="sec-h"><h2>${ico('spark')} Hoy, lo mínimo</h2></div><p class="mut">Los últimos días cumpliste poco. Con estas tres misiones retomas el ritmo; el resto puede esperar.</p>` + essentials(r, tasks).map(missionRow).join('') + `<button class="cb-btn cb-btn--secondary" style="margin-top:var(--space-4)" data-act="showall">Ver todo mi día</button>`;
+    return h;
+  }
+  if (lev && !r.habits[lev.habit.id]) h += `<div class="card lever"><span class="cap">${ico('spark', 'cb-ico--sm')} Tu palanca de hoy</span><b>${esc(lev.habit.t)}</b><p class="mut">${esc(lev.why)} Hazla primero.</p><button class="cb-btn cb-btn--sm" data-act="lever" data-id="${lev.habit.id}">Empezar</button></div>`;
   const od = lateToday();
   if (od.length) h += `<div class="sec-h"><h2>${ico('clock')} Atrasadas</h2></div>` + od.map(t => missionRow(taskMission(t, true))).join('');
   h += `<div class="sec-h"><h2>${ico('sun')} Mañana</h2><small>antes de las 7:30</small></div>` + slot('manana') + am.map(t => missionRow(taskMission(t))).join('');
@@ -273,7 +316,7 @@ function viewSemana() {
   for (let d = 0; d < 7; d++) {
     const ts = p.tasks.filter(t => t.day === d);
     const night = ts.filter(t => t.block === 'pm').reduce((a, t) => a + (t.mins || 0), 0);
-    h += `<div class="day"><h3><span>${DAYS_FULL[d]}${d === todayIdx() ? ' · hoy' : ''}</span><small class="${night > NIGHT_LIMIT ? 'warn' : ''}">${night} min noche</small></h3>`;
+    h += `<div class="day"><h3><span>${DAYS_FULL[d]}${d === todayIdx() ? ' · hoy' : ''}</span><small class="${night > nightCap() ? 'warn' : ''}">${night} min noche</small></h3>`;
     h += ts.map(t => `<div class="task ${t.done ? 'done' : ''}"><span class="t">${esc(t.title)}<br><span class="m">${t.block === 'pm' ? 'Noche' : 'Día'} · ${t.mins} min</span></span>${d < 6 ? `<button class="x" data-act="mv" data-id="${t.id}" title="Mover a mañana">↪</button>` : ''}<button class="x" data-act="rm" data-id="${t.id}" title="Borrar">✕</button></div>`).join('') || '<small class="mut">Libre</small>';
     h += `</div>`;
   }
@@ -333,9 +376,55 @@ function viewProgreso() {
   h += `<div class="cb-points" style="margin-top:var(--space-6)"><div class="cb-points__head"><div><h3 class="cb-points__title">Puntos ganados</h3><p class="cb-points__sub">${progRange === 7 ? 'Esta semana' : 'Últimos 30 días'}</p></div><div class="cb-points__num">${xp} <small>XP</small></div></div>
     <div class="cb-points__cols"><div><small>Misiones</small><b>${done}</b></div><div><small>Altura</small><b>${E[idx].alt} m</b></div><div><small>Racha</small><b>${st.n} d</b></div></div>
     <button class="cb-btn" data-act="share">${ico('share')}Compartir progreso</button></div>`;
+  h += moodHistory();
+  h += learnedHtml();
   if (best && best[1] > 0) h += `<div class="coachcard" style="margin-top:var(--space-4)"><span class="who">Lo que más funcionó</span><p>Tu hábito más constante fue «${best[0]}» (${best[1]}% de los días). Apóyate en él para sostener los demás.</p></div>`;
   h += `<div class="sec-h"><h2>Montaña</h2></div>` + monteBlock();
   return h;
+}
+const MOOD_BY_N = { 1: 'sad', 2: 'anxious', 3: 'calm', 4: 'happy' };
+function moodHistory() {
+  const days = rangeDays(14);
+  const cells = days.map(d => {
+    const r = S.days[d], k = r && r.mood ? MOOD_BY_N[r.mood] : null, wd = DAYS[(parse(d).getDay() + 6) % 7];
+    return `<span class="mh" title="${d}">${k ? `<span class="cb-face${MOOD_FACE[k]}" style="zoom:.4"></span>` : '<span class="mh-empty"></span>'}<small>${wd[0]}</small></span>`;
+  }).join('');
+  const n = days.filter(d => S.days[d] && S.days[d].mood).length;
+  return `<div class="sec-h"><h2>Historial de ánimo</h2><small>${n} de 14 días</small></div><div class="card"><div class="mhrow">${cells}</div><p class="mut" style="margin-bottom:0">Cada carita queda guardada con su día. ${Store.mode === 'db' ? 'Se guarda en la base de datos.' : 'Se guarda en este dispositivo.'}</p></div>`;
+}
+function learnedHtml() {
+  const m = S.learned;
+  let h = `<div class="sec-h"><h2>${ico('brain')} Lo que he aprendido de ti</h2></div>`;
+  if (!m) return h + '<div class="card"><p class="mut">Registra tu ánimo y tus misiones unos días y empiezo a detectar patrones.</p></div>';
+  h += `<div class="card">${m.insights.map(i => `<div class="insight"><p>${esc(i.text)}</p>${i.conf ? `<small>Confianza ${i.conf}</small>` : ''}</div>`).join('')}<small class="mut">${m.n} días con registro · actualizado ${esc(m.at)}</small></div>`;
+  const c = S.claude;
+  if (c) h += `<div class="coachcard coachcard--empathic"><span class="who">Análisis de Claude · ${esc(c.at || '')}</span>${(c.insights || []).map(i => `<p><b>${esc(i.t)}</b> ${esc(i.why || '')}</p>`).join('')}${c.advice ? `<p>${esc(c.advice)}</p>` : ''}</div>`;
+  h += `<button class="cb-btn cb-btn--secondary" data-act="askclaude" id="askc">${ico('spark')}${c ? 'Actualizar análisis de Claude' : 'Pedir análisis a Claude'}</button><p class="mut">Claude lee solo tus cifras (no tus notas) y propone ajustes que la app aplica.</p>`;
+  return h;
+}
+async function askClaude() {
+  const btn = $('#askc');
+  let sample = null;
+  try { sample = window.claude && await window.claude.use('sample'); } catch (e) { sample = null; }
+  if (!sample) { toast('Claude no está disponible aquí'); return; }
+  const m = S.learned || {}, { E, idx } = stageInfo();
+  const data = { diasConRegistro: m.n, habitos: m.habit, animo: m.mood, horaTipicaDeCumplimiento: m.bestHour, diaFlojo: m.weekday && m.weekday.weak, cargaNocturnaMin: m.night, tonoDelCoach: m.tone && m.tone.stats, tareas: Object.values(m.templates || {}), racha: streakInfo().n, xp: S.xp, montana: E[idx].n };
+  const ids = C.habits.map(h => h.id).join(', ');
+  const prompt = `Eres el coach de Esteban (22 años, Quito): diseñador con IA que quiere conseguir las primeras ventas de su agencia Iguana, dormir mejor y usar menos redes. Estos son los datos agregados de su app de hábitos (los números salen de sus propios registros; "lift" es cuánto sube la probabilidad de un ánimo bueno cuando hace el hábito):\n${JSON.stringify(data)}\n\nAnaliza solo lo que los datos respaldan; si hay pocos días dilo. Responde SOLO con JSON con esta forma: {"insights":[{"t":"frase corta","why":"por qué, con el dato"}],"advice":"un consejo concreto para esta semana en 2 frases","tone":"direct|empathic|socratic","focus":["id de hábito"]}. Máximo 4 insights. Los ids válidos de hábito son: ${ids}.`;
+  if (btn) { btn.disabled = true; btn.textContent = 'Claude está pensando…'; }
+  try {
+    const r = await sample.json(prompt, { modelTier: 'default', cache: false });
+    const valid = C.habits.map(h => h.id);
+    S.claude = {
+      at: todayStr(),
+      insights: (Array.isArray(r.insights) ? r.insights : []).slice(0, 4).map(i => ({ t: String(i.t || '').slice(0, 140), why: String(i.why || '').slice(0, 240) })).filter(i => i.t),
+      advice: String(r.advice || '').slice(0, 400),
+      tone: ['direct', 'empathic', 'socratic'].includes(r.tone) ? r.tone : null,
+      focus: (Array.isArray(r.focus) ? r.focus : []).filter(x => valid.includes(x)).slice(0, 3)
+    };
+    save(); toast('Análisis guardado');
+  } catch (e) { toast(e && e.code === 'not_granted' ? 'No diste permiso a Claude' : 'No se pudo analizar ahora'); }
+  render();
 }
 function animateBars() {
   requestAnimationFrame(() => requestAnimationFrame(() => document.querySelectorAll('.cb-cap__fill[data-v]').forEach(f => f.style.setProperty('--v', f.dataset.v))));
@@ -364,6 +453,7 @@ function viewIguana() {
 function viewMas() {
   const s = S.settings;
   return `<div class="hd"><h1>Ajustes</h1></div>
+  <div class="card"><b>Tus datos</b><p class="mut" data-store-status>${esc(Store.label())}</p><p class="mut">Tu ánimo, tus misiones, tus planes y lo que aprendo de ti se guardan en la base de datos de este artefacto (cuando está disponible) y siempre en este dispositivo.</p><button class="cb-btn cb-btn--secondary" data-act="relearn">Recalcular lo aprendido</button></div>
   <div class="card"><b>Notificaciones</b><p class="mut">La app puede avisarte mientras está abierta. Para alarmas aunque esté cerrada, descarga el calendario (.ics) y ábrelo en tu celular.</p>
     <button class="cb-btn" data-act="notif">${s.notif ? 'Notificaciones activadas' : 'Activar notificaciones'}</button><div class="gap"></div>
     <button class="cb-btn cb-btn--secondary" data-act="ics">Descargar alarmas (.ics)</button></div>
@@ -413,13 +503,15 @@ function viewWizard() {
     h += [0, 1, 2].map(i => `<label>Prioridad ${i + 1}</label><input data-bind="prio.${i}" value="${esc(d.priorities[i])}" placeholder="${['Ej: Lanzar campaña para barberías', 'Ej: Agendar 3 demos', 'Ej: Dormir antes de las 23:00'][i]}">`).join('');
   }
   if (w.step === 3) {
-    h += `<h2>3. Tareas de la semana</h2><button class="cb-btn cb-btn--secondary" data-act="suggest">Sugerir semana de Iguana</button>`;
+    h += `<h2>3. Tareas de la semana</h2>`;
+    if (S.learned && S.learned.n >= 5) h += `<div class="coachcard"><span class="who">Lo que sé de ti</span>${S.learned.insights.filter(i => ['night', 'weak', 'hour', 'hard', 'moodday'].includes(i.id)).map(i => `<p>${esc(i.text)}</p>`).join('') || '<p>Sigue registrando; con más días afino las sugerencias.</p>'}</div>`;
+    h += `<button class="cb-btn cb-btn--secondary" data-act="suggest">Sugerir semana de Iguana</button>`;
     for (let i = 0; i < 7; i++) {
       const ts = d.tasks.filter(t => t.day === i);
       const night = ts.filter(t => t.block === 'pm').reduce((a, t) => a + (t.mins || 0), 0);
-      h += `<div class="day"><h3><span>${DAYS_FULL[i]}</span><small class="${night > NIGHT_LIMIT ? 'warn' : ''}">${night}/${NIGHT_LIMIT} min noche</small></h3>` +
+      h += `<div class="day"><h3><span>${DAYS_FULL[i]}</span><small class="${night > nightCap() ? 'warn' : ''}">${night}/${nightCap()} min noche</small></h3>` +
         ts.map(t => `<div class="task"><span class="t">${esc(t.title)} <span class="m">${t.block === 'pm' ? 'Noche' : 'Día'} · ${t.mins} min</span></span><button class="x" data-act="wrm" data-id="${t.id}">✕</button></div>`).join('') +
-        (night > NIGHT_LIMIT ? `<small class="warn">Demasiado para una noche. Mueve algo a otro día.</small>` : '') + `</div>`;
+        (night > nightCap() ? `<small class="warn">Más de lo que sueles terminar (${nightCap()} min). Mueve algo a otro día.</small>` : '') + `</div>`;
     }
     h += addTaskForm('wz');
   }
@@ -444,6 +536,20 @@ function readTaskForm(pfx) {
   const title = $('#' + pfx + '-t').value.trim();
   if (!title) { toast('Escribe la tarea'); return null; }
   return { id: uid(), title, day: +$('#' + pfx + '-d').value, block: $('#' + pfx + '-b').value, mins: Math.max(5, +$('#' + pfx + '-m').value || 30), done: null };
+}
+// Arma la semana con lo aprendido: respeta tu carga nocturna, evita sobrecargar tu día flojo y prioriza lo que sí terminas.
+function smartWeek() {
+  const m = S.learned || {}, cap = nightCap();
+  const weak = m.weekday && m.weekday.weak !== null && m.n >= 14 ? m.weekday.weak : null;
+  const rate = t => { const e = (m.templates || {})[String(t).toLowerCase().slice(0, 40)]; return e ? e.rate : 0.6; };
+  const load = Array(7).fill(0), out = [];
+  C.starter.slice().sort((a, b) => rate(b.t) - rate(a.t)).forEach(x => {
+    let d = x.day;
+    const limit = d === weak ? Math.round(cap * 0.5) : cap;
+    if (load[d] + x.mins > limit) { const alt = [0, 1, 2, 3, 4, 5, 6].filter(i => i !== weak).sort((a, b) => load[a] - load[b]).find(i => load[i] + x.mins <= cap); if (alt === undefined) return; d = alt; }
+    load[d] += x.mins; out.push({ id: uid(), title: x.t, day: d, block: 'pm', mins: x.mins, done: null });
+  });
+  return out;
 }
 function saveWizard() {
   const d = wiz.draft;
@@ -568,7 +674,11 @@ document.addEventListener('click', e => {
       if (t.done) setTask(id, false); else openTimer({ title: t.title, secs: (t.mins || 15) * 60, onDone: () => setTask(id, true) });
       break;
     }
-    case 'mood': rec(todayStr()).mood = +id; save(); render(); if (navigator.vibrate) navigator.vibrate(12); break;
+    case 'mood': { const r = rec(todayStr()); r.mood = +id; r.moodAt = hourNow(); (r.moods = r.moods || []).push({ n: +id, h: hourNow() }); if (r.moods.length > 12) r.moods.shift(); save(); render(); toast(Store.mode === 'db' ? 'Ánimo guardado en la base de datos' : 'Ánimo guardado'); if (navigator.vibrate) navigator.vibrate(12); break; }
+    case 'showall': showAll = true; render(); break;
+    case 'lever': { const b = document.querySelector(`.cb-routine[data-id="${id}"]`); if (b) b.click(); break; }
+    case 'relearn': save(); toast('Lo aprendido se actualizó'); render(); break;
+    case 'askclaude': askClaude(); break;
     case 'selday': selDay = +id === todayIdx() ? null : +id; render(); break;
     case 'goto': tab = id; render(); window.scrollTo(0, 0); break;
     case 'range': progRange = +id; render(); break;
@@ -601,7 +711,7 @@ document.addEventListener('click', e => {
     case 'wback': wiz.step--; render(); window.scrollTo(0, 0); break;
     case 'wcancel': wiz = null; render(); break;
     case 'wsave': saveWizard(); break;
-    case 'suggest': wiz.draft.tasks = wiz.draft.tasks.concat(C.starter.map(s => ({ id: uid(), title: s.t, day: s.day, block: 'pm', mins: s.mins, done: null }))); render(); break;
+    case 'suggest': wiz.draft.tasks = wiz.draft.tasks.concat(smartWeek()); render(); toast('Semana sugerida con lo que he aprendido de ti'); break;
     case 'wrm': wiz.draft.tasks = wiz.draft.tasks.filter(t => t.id !== id); render(); break;
     case 'addtask': {
       const t = readTaskForm(id); if (!t) break;
@@ -647,6 +757,12 @@ document.addEventListener('change', e => {
 });
 
 fetch('data/content.json').then(r => r.json()).then(j => {
-  C = j; render(); scheduleLocal();
+  C = j; S = load(); render(); scheduleLocal();
+  Store.onChange = kind => {
+    if (kind === 'status') { document.querySelectorAll('[data-store-status]').forEach(el => { el.textContent = Store.label(); }); return; }
+    const a = document.activeElement;
+    if (!(a && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) && !$('#overlay').innerHTML) render();
+  };
+  Store.connect(S, applyRemote).then(ok => { if (ok) { save(); render(); } });
 }).catch(() => { $('#app').innerHTML = '<p>No se pudo cargar el contenido. Abre la app desde un servidor web.</p>'; });
 if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});

@@ -14,7 +14,7 @@ Cumbre es el sistema visual de un coach de hábitos para el celular: cada día s
 
 ## Color
 
-- Fondo de pantalla `surface`; tarjetas `surface-raised` con `shadow-card`, sin bordes marcados. Zonas hundidas (pistas de barras) en `surface-sunken`.
+- La app es blanca: fondo de pantalla `surface` (#FFFFFF) y tarjetas `surface-raised`, también blancas, que se separan por el aro fino y la sombra suave de `shadow-card`, sin bordes marcados. Zonas hundidas (pistas de barras) en `surface-sunken`.
 - Texto en `ink`; secundario en `ink-muted`. Sobre cualquier relleno de color usa su pareja `on-*` (`on-action`, `on-sun`, `on-green`, `on-brown`, `on-pink`, `on-taupe`, `on-night`). Nunca blanco sobre `action`.
 - `action` (naranja) es la acción principal y solo hay una por pantalla. `sun` (amarillo) marca hoy, la mañana, las caritas felices y la acción central de la barra. `green` es progreso y éxito; `brown` es el botón flotante y la energía baja; `pink` y `taupe` completan las gráficas.
 - Las tarjetas pastel (`peach`, `lilac`, `mint`, `sand`) agrupan por área: recordatorio, intención, gratitud, noche. Su texto es `ink`.
@@ -41,8 +41,9 @@ Cumbre es el sistema visual de un coach de hábitos para el celular: cada día s
 
 ## Iconografía
 
-- Trazo de 2 px, esquinas redondeadas, rejilla de 24 px (`.cb-ico-*`); se pintan con el color del texto. Existen: añadir, check, cerrar, atrás, más, reloj, gota, campana, montaña, loto, luna, sol, libro, chat, celular apagado, cama, casa, brújula, diario, usuario, llama, estrella, compartir, gráfica, estiramiento.
-- Los iconos van en cuadros pastel de 40 px para filas, o sueltos a 18 px dentro de botones y chips.
+- Glifos rellenos con esquinas redondeadas, en rejilla de 24 px (`.cb-ico-*`); se pintan con el color del texto. Sin trazos finos: pesan igual que el texto en negrita.
+- Existen: añadir, check, cerrar, atrás, más, reloj, gota, campana, montaña, loto, luna, sol, libro, chat, celular apagado, cama, casa, diario, usuario, llama, estrella, compartir, gráfica, cerebro y chispa.
+- Los iconos van en cuadros pastel de 40 px para filas, o sueltos a 18 px dentro de botones y chips. La chispa y el cerebro marcan lo que la app aprendió de la persona.
 
 ## Movimiento
 

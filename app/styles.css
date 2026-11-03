@@ -109,3 +109,14 @@ svg.map { width: 100%; height: auto; display: block; border-radius: var(--radius
 /* Las caritas seleccionadas crecen y llevan un aro: dejan aire para no recortarse */
 .cb-moods { padding: var(--space-2) var(--space-3) var(--space-3); }
 .cb-moods .cb-mood { gap: 10px; }
+
+/* Lo aprendido, historial de ánimo y palanca */
+.mhrow { display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 1px; align-items: end; margin-bottom: var(--space-2); }
+.mh { display: grid; justify-items: center; gap: 2px; }
+.mh small { font-size: 10px; font-weight: 700; color: var(--ink-muted); }
+.mh-empty { width: 18px; height: 18px; border-radius: 50%; border: 2px dashed var(--line-strong); opacity: .5; }
+.insight + .insight { border-top: 2px solid var(--line); margin-top: var(--space-3); padding-top: var(--space-3); }
+.insight p { margin: 0; font-weight: 600; }
+.lever { display: grid; gap: var(--space-2); background: var(--sand); box-shadow: none; }
+.lever .cap { display: flex; align-items: center; gap: var(--space-1); margin: 0; }
+.lever .cb-btn { justify-self: start; }
