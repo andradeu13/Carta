@@ -1,0 +1,130 @@
+{
+  "coach": {
+    "direct": [
+      "Esteban, lo de ayer quedó a medias. Hoy no se negocia: elige la misión más pequeña y empieza ya.",
+      "Iguana no se vende sola. Abre tu bloque de las 20:00 y cumple lo que te prometiste.",
+      "Postergar también es una decisión. Elige una misión y dale 10 minutos, ahora.",
+      "Las redes no te pagan. Cierra la app, pon el cronómetro y trabaja.",
+      "Tu equipo cuenta contigo. Pide cuentas hoy: ¿quién hace qué y para cuándo?"
+    ],
+    "empathic": [
+      "Hay días pesados y está bien. Hoy basta con una misión pequeña; yo la cuento completa.",
+      "Sentir miedo antes de vender es normal. Hazlo pequeño: un solo mensaje, imperfecto, pero enviado.",
+      "Respira. Descansar también es parte del plan. Medita 3 minutos y luego decidimos.",
+      "No tienes que arreglar todo hoy. ¿Cuál es lo más ligero que sí puedes hacer?"
+    ],
+    "socratic": [
+      "¿Qué es lo que más te acerca a tus primeras ventas esta semana?",
+      "Si dentro de un año ya vives de Iguana, ¿qué hiciste esta noche?",
+      "¿Qué te está frenando de verdad: tiempo, miedo o claridad?",
+      "¿Qué haría hoy alguien que ya consiguió US$1000 al mes con su agencia?"
+    ],
+    "celebrate": [
+      "¡Racha de {streak} días! Así se sube una montaña: paso a paso.",
+      "Buen ritmo, Esteban. Llevas {xp} XP en total. Sigue con calma y constancia.",
+      "Mira cómo cambia la película cuando no rompes la cadena. Sigue."
+    ]
+  },
+  "habits": [
+    { "id": "prior", "t": "Pizarra: escribe tus 3 prioridades de hoy", "kind": "physical", "xp": 10, "slot": "manana", "icon": "📝" },
+    { "id": "med", "t": "Meditar con tu tip de energía", "kind": "timer", "xp": 15, "slot": "manana", "icon": "🧘" },
+    { "id": "salmo", "t": "Salmo del día", "kind": "salmo", "xp": 15, "slot": "manana", "icon": "📖" },
+    { "id": "dato", "t": "Comparte el dato del día en una conversación real", "kind": "check", "xp": 15, "slot": "tarde", "icon": "💬" },
+    { "id": "trote", "t": "Trotar 30–45 min", "kind": "timer", "secs": 1800, "xp": 25, "slot": "tarde", "icon": "🏃" },
+    { "id": "redes", "t": "Redes dentro de tu límite de hoy", "kind": "check", "xp": 15, "slot": "cierre", "icon": "📵" },
+    { "id": "sleep", "t": "Teléfono lejos de la cama y a dormir a tu hora", "kind": "check", "xp": 15, "slot": "cierre", "icon": "😴" },
+    { "id": "pizarra", "t": "Pizarra: marca tu racha y mueve tu marcador", "kind": "physical", "xp": 10, "slot": "cierre", "icon": "🖍️" }
+  ],
+  "plantillas": [
+    { "t": "Enviar 5 mensajes a barberías, peluquerías o spas", "mins": 20 },
+    { "t": "Crear 1 pieza de contenido (post o reel) para la campaña", "mins": 40 },
+    { "t": "Diseñar un anuncio para un nicho (barbería, peluquería o spa)", "mins": 45 },
+    { "t": "Dar seguimiento a 3 prospectos que ya respondieron", "mins": 20 },
+    { "t": "Revisar métricas de la campaña y ajustar", "mins": 15 },
+    { "t": "Redactar la oferta y el mensaje de venta de un nicho", "mins": 30 },
+    { "t": "Agendar una demo con 1 negocio", "mins": 20 },
+    { "t": "Reunión corta con el equipo: quién, qué y cuándo", "mins": 20 }
+  ],
+  "starter": [
+    { "day": 0, "t": "Redactar la oferta y el mensaje de venta de un nicho", "mins": 30 },
+    { "day": 0, "t": "Enviar 5 mensajes a barberías, peluquerías o spas", "mins": 20 },
+    { "day": 1, "t": "Crear 1 pieza de contenido (post o reel) para la campaña", "mins": 40 },
+    { "day": 1, "t": "Enviar 5 mensajes a barberías, peluquerías o spas", "mins": 20 },
+    { "day": 2, "t": "Diseñar un anuncio para un nicho (barbería, peluquería o spa)", "mins": 45 },
+    { "day": 2, "t": "Dar seguimiento a 3 prospectos que ya respondieron", "mins": 20 },
+    { "day": 3, "t": "Enviar 5 mensajes a barberías, peluquerías o spas", "mins": 20 },
+    { "day": 3, "t": "Crear 1 pieza de contenido (post o reel) para la campaña", "mins": 40 },
+    { "day": 4, "t": "Agendar una demo con 1 negocio", "mins": 20 },
+    { "day": 4, "t": "Revisar métricas de la campaña y ajustar", "mins": 15 },
+    { "day": 5, "t": "Reunión corta con el equipo: quién, qué y cuándo", "mins": 20 },
+    { "day": 5, "t": "Crear 1 pieza de contenido (post o reel) para la campaña", "mins": 40 }
+  ],
+  "nichos": [
+    { "n": "Barberías", "msg": "Hola [nombre], soy Esteban de Iguana. Trabajamos con barberías para [beneficio de Iguana]. ¿Te muestro una demo de 5 minutos? Sin compromiso." },
+    { "n": "Peluquerías", "msg": "Hola [nombre], te escribo de Iguana. Ayudamos a peluquerías a [beneficio de Iguana]. ¿Te comparto una demo corta para que la veas?" },
+    { "n": "Spas", "msg": "Hola [nombre], soy Esteban de Iguana. Con los spas trabajamos para [beneficio de Iguana]. ¿Puedo mostrarte una demo de 5 minutos esta semana?" }
+  ],
+  "datos": [
+    { "t": "El Chimborazo, en Ecuador, tiene la cima más alejada del centro de la Tierra, porque el planeta se abulta en el ecuador.", "q": "¿Sabías que la montaña más alta del mundo medida desde el centro de la Tierra está en Ecuador?" },
+    { "t": "Los pulpos tienen tres corazones: dos bombean sangre a las branquias y uno al resto del cuerpo.", "q": "¿Cuál animal crees que tiene el diseño más raro de todos?" },
+    { "t": "El término «inteligencia artificial» se usó por primera vez en 1956, en una conferencia en Dartmouth.", "q": "Si la IA existe como idea desde 1956, ¿por qué crees que recién explotó ahora?" },
+    { "t": "La Ley de Hick dice que mientras más opciones das, más tarde decide la gente. Menos opciones, mejores ventas.", "q": "¿Alguna vez te quedaste paralizado frente a un menú larguísimo?" },
+    { "t": "La primera página web se publicó en 1991, en el CERN, de la mano de Tim Berners-Lee.", "q": "¿Cuál fue la primera página que recuerdas haber visitado?" },
+    { "t": "El principio de Pareto sugiere que cerca del 80% de los resultados salen del 20% de las acciones.", "q": "¿Cuál es el 20% de tu semana que te da el 80% de resultados?" },
+    { "t": "Un volcán cercano a Quito, el Cayambe, tiene nieve permanente justo sobre la línea del ecuador.", "q": "¿Has subido alguna vez a una montaña con nieve?" },
+    { "t": "Estudios de la Universidad de Harvard encontraron que quien hace más preguntas de seguimiento cae mejor a los demás.", "q": "¿Qué pregunta de seguimiento te gustaría hacer más seguido?" },
+    { "t": "Los adultos suelen necesitar entre 7 y 9 horas de sueño para rendir bien al día siguiente.", "q": "¿Cuántas horas duermes cuando te sientes en tu mejor momento?" },
+    { "t": "La miel bien guardada puede conservarse por miles de años: se han encontrado muestras comestibles en tumbas egipcias.", "q": "¿Cuál es la comida más antigua que probarías?" },
+    { "t": "Los recordatorios automáticos por mensaje suelen reducir las citas perdidas en negocios como barberías y spas.", "q": "¿Cuántas veces te olvidaste de una cita que sí querías cumplir?" },
+    { "t": "Ecuador es un país megadiverso: en un territorio pequeño tiene costa, Andes, Amazonía y las islas Galápagos.", "q": "¿Qué región de Ecuador recomendarías primero a un viajero?" },
+    { "t": "El cerebro consume cerca del 20% de la energía del cuerpo, aunque pesa solo alrededor del 2%.", "q": "¿Qué actividad te cansa más la cabeza que el cuerpo?" },
+    { "t": "Un diseño con pocos elementos y mucho espacio en blanco suele leerse más rápido y se percibe más premium.", "q": "¿Qué marca crees que usa mejor el minimalismo?" }
+  ],
+  "tips": [
+    { "t": "Respiración 4-7-8", "secs": 180, "steps": ["Siéntate con la espalda recta.", "Inhala por la nariz contando 4.", "Sostén el aire contando 7.", "Exhala por la boca contando 8.", "Repite 4 ciclos y respira normal."], "why": "Baja el ritmo del cuerpo y ayuda a soltar preocupaciones antes de dormir." },
+    { "t": "Respiración de caja", "secs": 240, "steps": ["Inhala 4 segundos.", "Sostén 4 segundos.", "Exhala 4 segundos.", "Sostén 4 segundos vacío.", "Repite durante 4 minutos."], "why": "Estabiliza la mente antes de una reunión o de enviar mensajes que te dan miedo." },
+    { "t": "Escáner corporal", "secs": 300, "steps": ["Cierra los ojos.", "Lleva la atención a los pies y sube lentamente.", "Suelta la tensión de piernas, abdomen, hombros y mandíbula.", "Termina con tres respiraciones profundas."], "why": "Detecta y suelta tensión acumulada; ideal en la noche." },
+    { "t": "Luz y agua al despertar", "secs": 180, "steps": ["Toma un vaso de agua.", "Sal a la ventana o al patio por 3 minutos.", "Respira profundo mirando el cielo."], "why": "La luz natural de la mañana ayuda a ordenar el reloj del sueño." },
+    { "t": "Tres gratitudes", "secs": 180, "steps": ["Respira tres veces.", "Piensa en tres cosas buenas de ayer.", "Di por qué fueron buenas.", "Sonríe un segundo."], "why": "Entrena a tu mente para notar avances y no solo lo que falta." },
+    { "t": "Atención en una sola cosa", "secs": 300, "steps": ["Elige un punto de atención: tu respiración.", "Cuando la mente se vaya, regresa sin regañarte.", "Cuenta 10 respiraciones y reinicia."], "why": "Es entrenamiento de foco: lo mismo que necesitas contra el scroll." },
+    { "t": "Estiramiento express", "secs": 180, "steps": ["Gira el cuello suavemente.", "Abre los hombros hacia atrás.", "Estira las piernas por 30 segundos cada lado."], "why": "Mueve el cuerpo si pasas muchas horas sentado diseñando." },
+    { "t": "Pausa sin celular", "secs": 240, "steps": ["Deja el celular fuera de tu vista.", "Siéntate sin hacer nada.", "Nota los sonidos a tu alrededor.", "Respira lento hasta que acabe el tiempo."], "why": "Reduce la ansiedad de revisar redes y entrena la paciencia." },
+    { "t": "Meditación de montaña", "secs": 300, "steps": ["Imagina el refugio del Cotopaxi al amanecer.", "Siente el aire frío al inhalar.", "Imagina cada paso lento y firme.", "Exhala y repite la frase: «un paso a la vez»."], "why": "Visualizar tu meta alimenta la motivación sin gastar energía." },
+    { "t": "Descarga mental", "secs": 300, "steps": ["Toma papel y escribe todo lo que te preocupa.", "Marca lo que sí puedes hacer mañana.", "Tacha o archiva el resto.", "Respira tres veces."], "why": "Sacar las preocupaciones de la cabeza ayuda a dormir mejor." }
+  ],
+  "salmos": [
+    { "ref": "Salmo 1", "q": "El salmo compara a quien medita en la Palabra de Dios con un árbol plantado junto a corrientes de agua. ¿Qué te alimenta hoy a ti?", "apply": ["Dedicar 10 min a leer en vez de redes", "Pensar en una enseñanza mientras troto", "Escribir una idea que quiero recordar"], "quiz": { "q": "¿Con qué compara el salmo a quien medita en la ley de Dios?", "o": ["Con un árbol junto a corrientes de agua", "Con un águila", "Con una roca"], "a": 0 }, "idea": "Quien se nutre de la Palabra de Dios da fruto a su tiempo." },
+    { "ref": "Salmo 19", "q": "El salmo habla de cómo la creación cuenta la gloria de Dios. ¿Qué viste hoy que te hizo admirar?", "apply": ["Mirar el cielo un minuto", "Agradecer por algo que no controlo", "Salir a caminar sin celular"], "quiz": { "q": "¿Qué cuentan los cielos según el salmo?", "o": ["La gloria de Dios", "El tiempo", "La historia de los reyes"], "a": 0 }, "idea": "La creación habla de Dios cada día." },
+    { "ref": "Salmo 23", "q": "El Señor es presentado como un pastor que cuida. ¿En qué área necesitas dejarte guiar hoy?", "apply": ["Confiar en el plan de la semana", "Pedir ayuda al equipo", "Descansar sin culpa"], "quiz": { "q": "¿Quién es el Señor en el Salmo 23?", "o": ["Mi pastor", "Mi maestro", "Mi capitán"], "a": 0 }, "idea": "Con Dios como pastor, no me falta lo necesario." },
+    { "ref": "Salmo 27", "q": "El salmo pregunta: si el Señor es mi luz, ¿de quién tendré miedo? ¿Qué miedo nombrarías hoy?", "apply": ["Enviar el mensaje que me da miedo", "Hablar con alguien de confianza", "Orar por valentía antes de vender"], "quiz": { "q": "¿Qué pregunta hace el salmista sobre el miedo?", "o": ["¿De quién temeré?", "¿Cuándo terminará?", "¿Por qué yo?"], "a": 0 }, "idea": "Dios es luz y fortaleza: el miedo pierde poder." },
+    { "ref": "Salmo 34", "q": "El salmo invita a probar y ver que Dios es bueno. ¿Dónde viste su bondad esta semana?", "apply": ["Agradecer por escrito tres cosas", "Contar una buena noticia a alguien", "Ayudar a una persona sin esperar nada"], "quiz": { "q": "¿Qué invita a probar el salmo?", "o": ["Que Dios es bueno", "Que el dinero es seguro", "Que el camino es fácil"], "a": 0 }, "idea": "Dios está cerca de quien lo busca; vale la pena probar su bondad." },
+    { "ref": "Salmo 37", "q": "El salmo invita a encomendar el camino a Dios y confiar en Él. ¿Qué plan tuyo necesitas entregarle?", "apply": ["Hacer mi parte y soltar el resultado", "Orar por Iguana antes de empezar", "Dejar de comparar mi progreso"], "quiz": { "q": "¿Qué se pide hacer con tu camino?", "o": ["Encomendarlo a Dios", "Esconderlo", "Cambiarlo cada semana"], "a": 0 }, "idea": "Confía, haz el bien y deja el camino en manos de Dios." },
+    { "ref": "Salmo 46", "q": "Dios es refugio y fortaleza, y también dice: estad quietos. ¿Dónde necesitas quietud hoy?", "apply": ["Respirar 3 minutos sin pantalla", "Posponer una decisión apurada", "Orar antes de contestar un mensaje difícil"], "quiz": { "q": "¿Qué es Dios según el salmo?", "o": ["Refugio y fortaleza", "Juez lejano", "Un mapa"], "a": 0 }, "idea": "En medio del caos, Dios es refugio y pide que nos aquietemos." },
+    { "ref": "Salmo 62", "q": "El salmista descansa solo en Dios. ¿En qué suele descansar tu mente cuando todo se complica?", "apply": ["Cerrar redes cuando me sienta ansioso", "Orar 2 minutos antes de dormir", "Hablar con mi familia"], "quiz": { "q": "¿Dónde reposa el alma, según el salmo?", "o": ["Solo en Dios", "En el éxito", "En la rutina"], "a": 0 }, "idea": "Mi descanso y esperanza vienen de Dios." },
+    { "ref": "Salmo 90", "q": "El salmo pide aprender a contar los días para ganar sabiduría. ¿En qué estás invirtiendo tus días?", "apply": ["Quitar una actividad que me roba tiempo", "Programar mi bloque de Iguana", "Hacer lo importante antes que lo urgente"], "quiz": { "q": "¿Qué se pide aprender a contar?", "o": ["Los días", "Las monedas", "Los pasos"], "a": 0 }, "idea": "Contar bien nuestros días nos da un corazón sabio." },
+    { "ref": "Salmo 91", "q": "El salmo habla de vivir bajo el abrigo del Altísimo. ¿Dónde necesitas sentir protección hoy?", "apply": ["Orar por mi familia", "Entregar mis preocupaciones a Dios", "Salir a trotar con calma"], "quiz": { "q": "¿Dónde mora quien vive al abrigo del Altísimo?", "o": ["Bajo su sombra", "En una torre", "En el desierto"], "a": 0 }, "idea": "Dios cuida a quienes confían en Él." },
+    { "ref": "Salmo 100", "q": "El salmo invita a entrar con gratitud y alegría. ¿Por qué estás agradecido hoy?", "apply": ["Escribir 3 gratitudes", "Dar las gracias a alguien en persona", "Empezar el día con una canción"], "quiz": { "q": "¿Con qué se entra a las puertas de Dios?", "o": ["Con acción de gracias", "Con prisa", "Con ofrendas caras"], "a": 0 }, "idea": "La gratitud abre la puerta a la presencia de Dios." },
+    { "ref": "Salmo 121", "q": "El salmo mira a los montes y pregunta de dónde viene el socorro. ¿Qué «montaña» tienes por delante?", "apply": ["Dividir la meta en pasos pequeños", "Pedir ayuda a Dios y al equipo", "Entrenar hoy para Cotopaxi"], "quiz": { "q": "¿De dónde viene el socorro, según el salmo?", "o": ["Del Señor que hizo los cielos y la tierra", "De los montes", "De uno mismo"], "a": 0 }, "idea": "Miro hacia las montañas, pero mi ayuda viene de Dios." },
+    { "ref": "Salmo 127", "q": "Si el Señor no edifica la casa, en vano trabajan los constructores; y Dios da descanso a sus amados. ¿Qué construyes y qué necesitas soltar?", "apply": ["Dormir a la hora sin culpa", "Orar por Iguana y soltar el control", "Trabajar con calma, sin ansiedad"], "quiz": { "q": "¿Qué pasa si el Señor no edifica la casa?", "o": ["En vano trabajan los que la edifican", "Se cae sola", "Alguien más la construye"], "a": 0 }, "idea": "El esfuerzo sin Dios es en vano; con Él, hay descanso." },
+    { "ref": "Salmo 139", "q": "Dios te conoce por completo. ¿Qué parte de ti te cuesta aceptar?", "apply": ["Hablarme con amabilidad hoy", "Reconocer un logro pequeño", "Agradecer por quién soy"], "quiz": { "q": "¿Qué dice el salmista sobre Dios y él?", "o": ["Que lo conoce por completo", "Que no lo escucha", "Que lo ignora"], "a": 0 }, "idea": "Dios te conoce, te valora y te acompaña." }
+  ],
+  "etapas": [
+    { "n": "Quito (inicio)", "xp": 0, "alt": 2850 },
+    { "n": "Parqueadero del Cotopaxi", "xp": 300, "alt": 4600 },
+    { "n": "Refugio José Rivas", "xp": 900, "alt": 4864 },
+    { "n": "Glaciar del Cotopaxi", "xp": 1700, "alt": 5200 },
+    { "n": "Cumbre del Cotopaxi", "xp": 2700, "alt": 5897 },
+    { "n": "Refugio Ruales-Oleas-Berge (Cayambe)", "xp": 3400, "alt": 4600 },
+    { "n": "Glaciar del Cayambe", "xp": 4300, "alt": 5200 },
+    { "n": "Cumbre del Cayambe", "xp": 5500, "alt": 5790 }
+  ],
+  "niveles": ["Caminante", "Explorador", "Senderista", "Montañista", "Guía", "Cumbrero", "Leyenda andina"],
+  "reminders": [
+    { "h": 6, "m": 45, "days": "daily", "t": "Misiones de la mañana", "b": "3 minutos: prioridades, meditación y tu salmo." },
+    { "h": 18, "m": 15, "days": "daily", "t": "Hora de trotar", "b": "30 a 45 minutos y luego a cenar con tu familia." },
+    { "h": 19, "m": 50, "days": "daily", "t": "Bloque Iguana en 10 minutos", "b": "Deja las redes y abre tus misiones de la noche." },
+    { "h": 22, "m": 0, "days": "daily", "t": "Cierra el día", "b": "Marca tu racha en la pizarra y prepárate para dormir." },
+    { "h": 22, "m": 30, "days": "daily", "t": "Celular lejos de la cama", "b": "A dormir. Mañana sigues la montaña." },
+    { "h": 18, "m": 0, "days": "SU", "t": "Planifica tu semana", "b": "15 minutos para definir prioridades y tareas." }
+  ]
+}

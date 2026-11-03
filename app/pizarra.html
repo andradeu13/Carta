@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pizarra de la semana</title>
+<style>
+  :root{color-scheme:light}
+  *{box-sizing:border-box}
+  body{font:14px/1.35 system-ui,sans-serif;margin:0;padding:16px;color:#111;background:#fff}
+  h1{margin:0;font-size:22px} h2{font-size:14px;margin:0 0 6px;text-transform:uppercase;letter-spacing:.05em}
+  .bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  button{font:inherit;padding:8px 14px;border-radius:8px;border:2px solid #111;background:#fff;cursor:pointer}
+  .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  .col{border:2px solid #111;border-radius:8px;padding:6px;min-height:150px}
+  .col h2{border-bottom:1px solid #111;padding-bottom:3px}
+  .t{display:flex;gap:6px;margin:4px 0;font-size:12px}
+  .box{width:13px;height:13px;border:2px solid #111;border-radius:3px;flex:none;margin-top:1px}
+  .box.on{background:#111}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+  .card{border:2px solid #111;border-radius:8px;padding:8px}
+  .chain{display:flex;flex-wrap:wrap;gap:4px}
+  .chain .box{width:18px;height:18px}
+  .lines{height:54px;background:repeating-linear-gradient(transparent 0 17px,#999 17px 18px)}
+  table{width:100%;border-collapse:collapse;font-size:12px} td,th{border:1px solid #111;padding:3px;text-align:center}
+  .stage{display:flex;gap:6px;align-items:center;margin:3px 0;font-size:12px}
+  @media print{ .noprint{display:none} body{padding:0;font-size:11px} h1{font-size:17px} .bar{margin-bottom:6px} .col{min-height:80px} .t{font-size:10.5px;margin:2px 0} .row{margin-top:6px;grid-template-columns:2fr 1fr} .row+.row{grid-template-columns:1fr 2fr} .lines{height:34px} .chain .box{width:12px;height:12px} .stage{margin:1px 0} h2{margin-bottom:3px} .card{padding:6px} .grid{margin-top:6px!important} @page{size:A4 landscape;margin:8mm} }
+</style>
+</head>
+<body>
+<div class="bar"><h1 id="ttl">Pizarra de la semana</h1><button class="noprint" onclick="window.print()">Imprimir</button></div>
+<div id="out"></div>
+<script>
+(function(){
+  var D=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
+  var pad=function(n){return String(n).padStart(2,'0')};
+  var fmt=function(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
+  var S=null; try{S=JSON.parse(localStorage.getItem('coach.v1'))}catch(e){}
+  S=S||{xp:0,days:{},plan:null,history:{}};
+  var now=new Date(); var mon=new Date(now); mon.setDate(mon.getDate()-((mon.getDay()+6)%7)); mon.setHours(0,0,0,0);
+  var key=fmt(mon);
+  var plan=(S.plan&&S.plan.weekStart===key)?S.plan:(S.history&&S.history[key])||null;
+  // Si es domingo y hay plan de la próxima semana, se imprime ese.
+  if(now.getDay()===0&&S.plan&&S.plan.weekStart>key){plan=S.plan;mon=new Date(mon);mon.setDate(mon.getDate()+7);}
+  var end=new Date(mon); end.setDate(end.getDate()+6);
+  document.getElementById('ttl').textContent='Pizarra · semana del '+mon.getDate()+'/'+(mon.getMonth()+1)+' al '+end.getDate()+'/'+(end.getMonth()+1);
+  var pr=(plan&&plan.priorities||[]).filter(Boolean);
+  var h='<div class="card"><h2>3 prioridades</h2>'+([0,1,2].map(function(i){return '<div class="t"><span class="box"></span><span>'+esc(pr[i]||'')+'</span></div>'}).join(''))+'</div>';
+  h+='<div class="grid" style="margin-top:10px">';
+  for(var d=0;d<7;d++){
+    var ts=(plan?plan.tasks:[]).filter(function(t){return t.day===d});
+    h+='<div class="col"><h2>'+D[d]+'</h2>'+ts.map(function(t){return '<div class="t"><span class="box '+(t.done?'on':'')+'"></span><span>'+esc(t.title)+' <small>('+(t.block==='pm'?'noche ':'')+t.mins+'m)</small></span></div>'}).join('')+'</div>';
+  }
+  h+='</div>';
+  // hábitos P1 por día
+  var rows=[['Dormir a la hora','sleep'],['Redes en el límite','redes'],['Meditación','med'],['Salmo','salmo'],['Trote','trote']];
+  h+='<div class="row"><div class="card"><h2>Hábitos de la semana</h2><table><tr><th></th>'+D.map(function(x){return '<th>'+x+'</th>'}).join('')+'</tr>';
+  rows.forEach(function(r){h+='<tr><td style="text-align:left">'+r[0]+'</td>'+D.map(function(_,i){var dd=new Date(mon);dd.setDate(dd.getDate()+i);var rec=S.days[fmt(dd)];return '<td>'+((rec&&rec.habits&&rec.habits[r[1]])?'■':'□')+'</td>'}).join('')+'</tr>'});
+  h+='</table></div>';
+  // racha: 28 casillas
+  var chain='';for(var i=27;i>=0;i--){var dd=new Date(now);dd.setHours(0,0,0,0);dd.setDate(dd.getDate()-i);var r=S.days[fmt(dd)];var ok=r&&(Object.keys(r.habits||{}).length+(r.tasksDone||0))>=2;chain+='<span class="box '+(ok?'on':'')+'"></span>'}
+  h+='<div class="card"><h2>Racha (últimos 28 días)</h2><div class="chain">'+chain+'</div><p style="margin:8px 0 0">XP total: <b>'+(S.xp||0)+'</b></p></div></div>';
+  // montaña
+  var E=[['Quito',0],['Parqueadero Cotopaxi',300],['Refugio José Rivas',900],['Glaciar Cotopaxi',1700],['Cumbre Cotopaxi',2700],['Refugio Cayambe',3400],['Glaciar Cayambe',4300],['Cumbre Cayambe',5500]];
+  h+='<div class="row"><div class="card"><h2>Montaña (marca tu campamento)</h2>'+E.map(function(e){return '<div class="stage"><span class="box '+((S.xp||0)>=e[1]?'on':'')+'"></span>'+e[0]+' <small>· '+e[1]+' XP</small></div>'}).join('')+'</div>';
+  // Iguana
+  var wk={sent:0,replies:0,demos:0,sales:0,revenue:0};
+  for(var i2=0;i2<7;i2++){var dd2=new Date(mon);dd2.setDate(dd2.getDate()+i2);var r2=S.days[fmt(dd2)];if(r2)for(var k in wk)wk[k]+=r2[k]||0}
+  h+='<div class="card"><h2>Iguana · meta US$1000/mes</h2><table><tr><th>Mensajes</th><th>Respuestas</th><th>Demos</th><th>Ventas</th></tr><tr><td>'+wk.sent+'</td><td>'+wk.replies+'</td><td>'+wk.demos+'</td><td>'+wk.sales+'</td></tr></table><h2 style="margin-top:10px">Dato del día para compartir</h2><div class="lines"></div><h2 style="margin-top:10px">Notas</h2><div class="lines"></div></div></div>';
+  if(!plan)h+='<p class="noprint">Aún no hay plan para esta semana. Créalo en la app (pestaña Semana) y vuelve a abrir esta hoja.</p>';
+  document.getElementById('out').innerHTML=h;
+})();
+</script>
+</body>
+</html>

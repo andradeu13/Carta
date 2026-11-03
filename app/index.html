@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cumbre — tu coach</title>
+<meta name="description" content="Coach interactivo con misiones, rachas y mapa de montaña.">
+<meta name="theme-color" content="#0f1a14">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app" aria-live="polite"></div>
+<nav id="tabs" aria-label="Secciones">
+  <button data-tab="hoy"><span>🔥</span>Hoy</button>
+  <button data-tab="semana"><span>🗓️</span>Semana</button>
+  <button data-tab="monte"><span>🏔️</span>Montaña</button>
+  <button data-tab="iguana"><span>🦎</span>Iguana</button>
+  <button data-tab="mas"><span>⚙️</span>Más</button>
+</nav>
+<div id="overlay" hidden></div>
+<div id="toast" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>

@@ -21,8 +21,11 @@
 - Meta que más pesa hoy: primeras ventas de Iguana.
 
 ## 4. Trabajo / negocio (Iguana)
+- Producto: suscripción para negocios pequeños con alto flujo de clientes (barberías, peluquerías, spas) + consultoría para automatizar procesos y páginas web. Ya existe una demo; el desarrollo lo lleva el equipo técnico.
+- Rol de Esteban: marketing, campañas y diseño (urgente: sacar campañas y conseguir las primeras ventas).
+- Meta de ingresos: mínimo US$1000/mes con Iguana.
 - Bloqueo principal: constancia y compromiso de todo el equipo; Esteban también lo pospone.
-- Pendiente de definir: oferta concreta, cliente ideal, roles del equipo, ingresos objetivo.
+- Pendiente de definir: precio y paquetes exactos, roles/compromisos del equipo.
 
 ## 5. Estudio / desarrollo
 - Aprender cada día algo interesante para tener tema de conversación (un dato o tip rápido).
@@ -35,8 +38,9 @@
 - Se añade un hábito nuevo solo tras ~3 semanas de constancia en el anterior.
 
 ## 7. Semana real
-- L–V: trabajo 7:30–16:30, en casa ~18:00. Tiempo para Iguana: noches y fines de semana.
-- Mejor momento del día para rendir: por definir con los check-ins.
+- L–V: trabajo 7:30–16:30, en casa ~18:00. Luego trota 30–45 min y cena con su familia.
+- Bloque de Iguana: **20:00–22:00** (noches). Mañanas y fines de semana: hábitos, entrenamiento y tareas extra.
+- Debe actualizar sus tareas cada semana (planificación semanal los domingos).
 
 ## 8. Obstáculos
 - Pereza, redes sociales, procrastinación, dinero, miedo y preocupaciones.
@@ -53,4 +57,5 @@
 - Respetar su fe: ofrecer contexto y aplicación, sin imponer interpretaciones.
 
 ## 11. Herramientas
-- Por definir (tareas, calendario, notas).
+- Un solo calendario con todo anotado, pero casi no lo sigue. Prefiere algo interactivo (app con rachas, misiones y notificaciones) y una pizarra física.
+- Biblia: Salmos, formato rotativo (lectura + pregunta, mini quiz, frase del día).
