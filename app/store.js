@@ -6,8 +6,12 @@
 (function () {
   const LS = 'coach.v1';
   const Store = {
-    mode: 'local',          // 'local' | 'db'
-    status: 'local',        // 'local' | 'conectando' | 'sync' | 'guardando' | 'error'
+    mode: 'local',          // 'local' | 'db' (artefacto) | 'api' (Cloudflare Worker)
+    status: 'local',        // 'local' | 'conectando' | 'sync' | 'guardando' | 'error' | 'sin-codigo'
+    S: null,
+    onConflict: null,       // (ruta, documentoDelServidor) => boolean; la app fusiona y se vuelve a guardar
+    lastPull: 0,
+    pollTimer: null,
     onChange: null,         // (kind) => void, para repintar
     lastBody: {},           // ruta -> JSON guardado (sin el sello u)
     queue: {},              // ruta -> documento pendiente
@@ -43,10 +47,10 @@
         const o = docs[path], b = this.body(o);
         if (b === this.lastBody[path]) return;
         if (!o.u || this.pendingBody(path) !== b) o.u = Date.now();
-        if (this.mode === 'db') this.queue[path] = { o, b };
+        if (this.mode !== 'local') this.queue[path] = { o, b };
       });
       this.saveLocal(S);
-      if (this.mode === 'db') this.schedule();
+      if (this.mode !== 'local') this.schedule();
     },
     pendingBody(path) { return this.queue[path] && this.queue[path].b; },
 
@@ -61,20 +65,83 @@
       this.setStatus('guardando');
       await Promise.all(paths.map(async path => {
         const item = this.queue[path]; delete this.queue[path]; this.busy[path] = true;
-        try { await this.db.doc(path).set(JSON.parse(JSON.stringify(item.o))); this.lastBody[path] = item.b; }
+        try { const ok = await this.write(path, item.o); if (ok) this.lastBody[path] = item.b; }
         catch (e) { this.queue[path] = this.queue[path] || item; this.setStatus('error'); }
         finally { this.busy[path] = false; }
       }));
       if (Object.keys(this.queue).length) { if (this.status !== 'error') this.schedule(); return; }
       if (this.status !== 'error') this.setStatus('sync');
     },
+    async write(path, o) {
+      if (this.mode === 'db') { await this.db.doc(path).set(JSON.parse(JSON.stringify(o))); return true; }
+      const r = await fetch('api/doc/' + path, { method: 'PUT', headers: { Authorization: 'Bearer ' + this.token(), 'Content-Type': 'application/json' }, body: JSON.stringify(o) });
+      if (r.status === 401) { this.setStatus('sin-codigo'); throw new Error('sin acceso'); }
+      if (r.status === 409) {                       // el servidor tiene algo más nuevo (p. ej. una respuesta a un push)
+        const cur = (await r.json()).current;
+        this.lastBody[path] = this.body(cur);
+        if (this.onConflict && this.onConflict(path, cur)) { this.persist(this.S); if (this.onChange) this.onChange('remote'); }
+        return false;
+      }
+      if (!r.ok) throw new Error('error ' + r.status);
+      return true;
+    },
+    token() { try { return localStorage.getItem('coach.token') || ''; } catch (e) { return ''; } },
+    setToken(t) { try { if (t) localStorage.setItem('coach.token', t); else localStorage.removeItem('coach.token'); } catch (e) { /* ignorar */ } },
     setStatus(s) { this.status = s; if (this.onChange) this.onChange('status'); },
     label() {
-      return { local: 'Guardado en este dispositivo', conectando: 'Conectando con la base de datos…', sync: 'Guardado en la base de datos', guardando: 'Guardando…', error: 'No se pudo guardar en la base de datos; queda en este dispositivo' }[this.status];
+      const sync = this.mode === 'api' ? 'Sincronizado con Cloudflare' : 'Guardado en la base de datos';
+      return { local: 'Guardado en este dispositivo', conectando: 'Conectando con la base de datos…', sync, guardando: 'Guardando…', error: 'No se pudo guardar en el servidor; queda en este dispositivo', 'sin-codigo': 'Falta el código de acceso (Ajustes) para sincronizar; por ahora queda en este dispositivo' }[this.status];
     },
 
     /* Se conecta (si hay base de datos), trae lo guardado y se queda escuchando. `apply(col, key, doc)` fusiona. */
     async connect(S, apply) {
+      this.S = S; this.apply = apply;
+      if (typeof window !== 'undefined' && window.claude && window.claude.use) return this.connectDb(S, apply);
+      return this.connectApi(S, apply);
+    },
+
+    /* Cloudflare Worker: misma app y API en el mismo origen (/api/*). */
+    async connectApi(S, apply) {
+      if (typeof location === 'undefined' || location.protocol === 'file:') return false;
+      try {
+        const r = await fetch('api/ping', { cache: 'no-store' });
+        const j = r.ok && await r.json();
+        if (!j || j.ok !== true) return false;
+        this.pushReady = !!j.push;
+      } catch (e) { return false; }
+      this.apiSeen = true;
+      if (!this.token()) { this.setStatus('sin-codigo'); return false; }
+      this.setStatus('conectando');
+      this.mode = 'api';
+      if (!await this.pull(true)) { if (this.status !== 'sin-codigo') this.setStatus('error'); this.mode = 'local'; return false; }
+      this.persist(S);
+      this.setStatus(Object.keys(this.queue).length ? 'guardando' : 'sync');
+      clearInterval(this.pollTimer);
+      this.pollTimer = setInterval(() => { if (!document.hidden) this.pull(); }, 60000);
+      document.addEventListener('visibilitychange', () => { if (!document.hidden && this.mode === 'api') this.pull(); });
+      return true;
+    },
+    /* Trae lo que cambió en el servidor desde la última vez (p. ej. respuestas dadas desde una notificación). */
+    async pull(first) {
+      try {
+        const r = await fetch('api/docs?since=' + (first ? 0 : this.lastPull), { headers: { Authorization: 'Bearer ' + this.token() }, cache: 'no-store' });
+        if (r.status === 401) { this.setStatus('sin-codigo'); return false; }
+        if (!r.ok) return false;
+        const j = await r.json();
+        let changed = false;
+        Object.keys(j.docs).forEach(path => {
+          const o = j.docs[path], [col, key] = [path.split('/')[0], path.split('/').slice(1).join('/')];
+          if (this.queue[path] || this.busy[path]) return;
+          this.lastBody[path] = this.body(o);
+          if (this.apply(col, key, o)) changed = true;
+        });
+        this.lastPull = Math.max(0, (j.now || Date.now()) - 5000);
+        if (changed && !first) { this.saveLocal(this.S); if (this.onChange) this.onChange('remote'); }
+        return true;
+      } catch (e) { return false; }
+    },
+
+    async connectDb(S, apply) {
       if (typeof window === 'undefined' || !window.claude || !window.claude.use) return false;
       this.setStatus('conectando');
       let db = null;

@@ -1,0 +1,5 @@
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+APP_TOKEN=cambia-este-codigo
+SIGN_SECRET=cambia-esta-firma-larga-y-aleatoria
+VAPID_SUBJECT=https://cumbre.example.workers.dev

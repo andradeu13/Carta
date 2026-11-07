@@ -33,7 +33,8 @@
       "xp": 10,
       "slot": "manana",
       "ico": "journal",
-      "tone": "lilac"
+      "tone": "lilac",
+      "ask": "06:50"
     },
     {
       "id": "med",
@@ -42,7 +43,8 @@
       "xp": 15,
       "slot": "manana",
       "ico": "lotus",
-      "tone": "mint"
+      "tone": "mint",
+      "ask": "07:15"
     },
     {
       "id": "salmo",
@@ -51,7 +53,8 @@
       "xp": 15,
       "slot": "manana",
       "ico": "book",
-      "tone": "lilac"
+      "tone": "lilac",
+      "ask": "07:20"
     },
     {
       "id": "dato",
@@ -60,7 +63,8 @@
       "xp": 15,
       "slot": "tarde",
       "ico": "chat",
-      "tone": "sand"
+      "tone": "sand",
+      "ask": "21:30"
     },
     {
       "id": "trote",
@@ -70,7 +74,8 @@
       "xp": 25,
       "slot": "tarde",
       "ico": "trail",
-      "tone": ""
+      "tone": "",
+      "ask": "19:30"
     },
     {
       "id": "redes",
@@ -79,7 +84,8 @@
       "xp": 15,
       "slot": "cierre",
       "ico": "phoneoff",
-      "tone": "lilac"
+      "tone": "lilac",
+      "ask": "22:00"
     },
     {
       "id": "sleep",
@@ -88,7 +94,8 @@
       "xp": 15,
       "slot": "cierre",
       "ico": "bed",
-      "tone": "sand"
+      "tone": "sand",
+      "ask": "22:45"
     },
     {
       "id": "pizarra",
@@ -97,7 +104,8 @@
       "xp": 10,
       "slot": "cierre",
       "ico": "chart",
-      "tone": "mint"
+      "tone": "mint",
+      "ask": "22:10"
     }
   ],
   "plantillas": [
@@ -740,6 +748,41 @@
       "days": "SU",
       "t": "Planifica tu semana",
       "b": "15 minutos para definir prioridades y tareas."
+    }
+  ],
+  "tz": "America/Guayaquil",
+  "blocks": [
+    {
+      "id": "manana",
+      "t": "Mañana",
+      "from": "05:00",
+      "to": "07:30",
+      "ico": "sun",
+      "ask": "07:30"
+    },
+    {
+      "id": "tarde",
+      "t": "Tarde",
+      "from": "16:30",
+      "to": "20:00",
+      "ico": "trail",
+      "ask": "20:00"
+    },
+    {
+      "id": "noche",
+      "t": "Noche · Iguana",
+      "from": "20:00",
+      "to": "22:00",
+      "ico": "moon",
+      "ask": "22:00"
+    },
+    {
+      "id": "cierre",
+      "t": "Cierre",
+      "from": "22:00",
+      "to": "23:30",
+      "ico": "bed",
+      "ask": "23:00"
     }
   ]
 }

@@ -120,3 +120,43 @@ svg.map { width: 100%; height: auto; display: block; border-radius: var(--radius
 .lever { display: grid; gap: var(--space-2); background: var(--sand); box-shadow: none; }
 .lever .cap { display: flex; align-items: center; gap: var(--space-1); margin: 0; }
 .lever .cb-btn { justify-self: start; }
+
+/* Encabezado: racha y nivel */
+.hstats { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); margin-bottom: var(--space-4); }
+.hs { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); min-width: 0; }
+.hs--racha { background: var(--peach); }
+.hs--nivel { background: var(--mint); }
+.hs-ico { width: 28px; height: 28px; align-self: flex-start; margin-top: 4px; color: var(--action-strong); flex: none; }
+.hs-body { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.hs-num { font-family: var(--font-display); font-size: 36px; line-height: 36px; font-weight: 800; margin-right: var(--space-1); }
+.hs-line { display: flex; align-items: baseline; gap: 6px; font-weight: 700; font-size: 14px; line-height: 18px; }
+.hs--racha small { font-size: 11px; line-height: 14px; font-weight: 600; color: var(--ink-muted); }
+.hs-lab { display: grid; font-weight: 700; font-size: 14px; line-height: 18px; }
+.hs-lab small { font-size: 11px; line-height: 14px; font-weight: 600; color: var(--ink-muted); }
+.hs--nivel .hs-lab { display: block; font-size: 14px; }
+.hs--nivel .bar { height: 8px; background: var(--surface-raised); margin: 4px 0 2px; }
+.hs--nivel small { font-size: 11px; font-weight: 600; color: var(--ink-muted); }
+@media (max-width: 360px) { .hstats { grid-template-columns: 1fr; } }
+
+/* Aviso del coach (2 minutos) */
+#notice { position: fixed; left: 0; right: 0; top: 0; z-index: 40; padding: calc(var(--space-3) + env(safe-area-inset-top)) var(--space-4) 0; pointer-events: none; }
+#notice[hidden] { display: none; }
+.notice { max-width: 528px; margin: 0 auto; padding: var(--space-3) var(--space-4) var(--space-4); border-radius: var(--radius-md); background: var(--mint); color: var(--ink); box-shadow: var(--shadow-float); pointer-events: auto; animation: cb-pop var(--duration-base) var(--easing-spring); position: relative; overflow: hidden; }
+.notice--direct { background: var(--peach); }
+.notice--empathic { background: var(--lilac); }
+.notice--celebrate { background: var(--sun); color: var(--on-sun); }
+.notice__top { display: flex; align-items: center; gap: var(--space-2); }
+.notice__who { flex: 1; font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.notice__clock { font-family: var(--font-display); font-weight: 800; font-size: 16px; font-variant-numeric: tabular-nums; }
+.notice__x { width: 36px; height: 36px; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .6); color: inherit; display: grid; place-items: center; cursor: pointer; }
+.notice p { margin: var(--space-1) 0 0; font-weight: 600; }
+.notice small { display: block; margin-top: var(--space-1); font-size: 12px; font-weight: 600; opacity: .75; }
+.notice__bar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(0, 0, 0, .1); }
+.notice__bar i { display: block; height: 100%; width: 100%; background: currentColor; opacity: .55; transition: width 1s linear; }
+
+/* Reloj de cada bloque */
+.sec-h.block { padding: var(--space-2) var(--space-3); margin: var(--space-6) calc(-1 * var(--space-3)) var(--space-2); border-radius: var(--radius-md); transition: background var(--duration-base); }
+.sec-h.block.is-active { background: var(--mint); }
+.btimer { font-family: var(--font-display); font-weight: 800; font-size: 14px; font-variant-numeric: tabular-nums; padding: 4px var(--space-3); border-radius: var(--radius-pill); background: var(--surface-sunken); color: var(--ink-muted); white-space: nowrap; }
+.btimer[data-st="active"] { background: var(--green-strong); color: var(--surface-raised); }
+.btimer[data-st="pending"] { background: var(--sand); color: var(--ink); }

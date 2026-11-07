@@ -33,7 +33,8 @@
       const gd = moodDays.filter(k => S.days[k].habits[h.id]), gn = moodDays.filter(k => !S.days[k].habits[h.id]);
       nDone = gd.length; nNot = gn.length;
       if (nDone >= 3 && nNot >= 3) lift = gd.filter(k => S.days[k].mood >= 3).length / nDone - gn.filter(k => S.days[k].mood >= 3).length / nNot;
-      m.habit[h.id] = { rate: +(done.length / Math.max(1, win.length)).toFixed(2), rate7: +r7.toFixed(2), lift: lift === null ? null : +lift.toFixed(2), nDone, nNot };
+      const missed = win.filter(k => S.days[k] && S.days[k].missed && S.days[k].missed[h.id]).length;
+      m.habit[h.id] = { missed, rate: +(done.length / Math.max(1, win.length)).toFixed(2), rate7: +r7.toFixed(2), lift: lift === null ? null : +lift.toFixed(2), nDone, nNot };
     });
 
     // 2) ánimo
@@ -109,6 +110,8 @@
     if (hard) out.push({ id: 'hard', conf: conf(hard.n), text: `«${hard.title}» solo la terminas el ${pct(hard.rate)}% de las veces. Prueba hacerla más corta o cambiarla de día.` });
     const easy = ts.filter(t => t.rate >= 0.8).sort((a, b) => b.rate - a.rate)[0];
     if (easy) out.push({ id: 'easy', conf: conf(easy.n), text: `«${easy.title}» es tu tarea más constante (${pct(easy.rate)}%). Úsala para arrancar el bloque.` });
+    const miss = habits.map(h => [h, m.habit[h.id]]).filter(x => x[1] && x[1].missed >= 3 && x[1].rate < 0.4).sort((a, b) => b[1].missed - a[1].missed)[0];
+    if (miss) out.push({ id: 'missed', conf: conf(m.n), text: `Dijiste «No» ${miss[1].missed} veces cuando te pregunté si ${label(miss[0].id)}. Prueba moverlo de hora o hacerlo más corto.` });
     if (m.load && m.load.minimal) out.push({ id: 'minimal', conf: 'media', text: 'Los últimos días cumpliste poco. Hoy te muestro solo lo mínimo para retomar el ritmo.' });
     if (!out.length) out.push({ id: 'neutral', conf: 'baja', text: 'Aún no veo patrones claros. Sigue registrando tu ánimo y tus misiones: cada día mejora lo que sé de ti.' });
     return out;

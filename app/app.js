@@ -63,6 +63,23 @@ function applyRemote(col, key, o) {
   }
   return false;
 }
+// Une dos versiones del mismo día (lo hecho en este dispositivo y lo anotado desde un push): nada de lo hecho se pierde.
+function mergeDay(a, b) {
+  const out = Object.assign({}, b, a);
+  out.habits = Object.assign({}, b.habits, a.habits);
+  out.times = Object.assign({}, b.times, a.times);
+  const missed = Object.assign({}, b.missed, a.missed); Object.keys(missed).forEach(k => { if (out.habits[k]) delete missed[k]; });
+  if (Object.keys(missed).length) out.missed = missed; else delete out.missed;
+  ['tasksDone', 'xp', 'sent', 'replies', 'demos', 'sales', 'revenue'].forEach(k => { out[k] = Math.max(a[k] || 0, b[k] || 0); });
+  out.mood = (a.moodAt || 0) >= (b.moodAt || 0) && a.mood ? a.mood : (b.mood || a.mood || 0);
+  out.u = Math.max(a.u || 0, b.u || 0);
+  return out;
+}
+function onConflict(path, cur) {
+  const [col, key] = [path.split('/')[0], path.split('/').slice(1).join('/')];
+  if (col === 'days') { S.days[key] = S.days[key] ? mergeDay(S.days[key], cur) : cur; return true; }
+  return applyRemote(col, key, cur);
+}
 function rec(ds) {
   if (!S.days[ds]) S.days[ds] = { habits: {}, tasksDone: 0, mood: 0, sent: 0, replies: 0, demos: 0, sales: 0, revenue: 0 };
   return S.days[ds];
@@ -215,7 +232,7 @@ function missionRow(m) {
     <span class="cb-check">${ico('check')}</span>
     <span class="cb-tile${m.tone ? ' cb-tile--' + m.tone : ''}">${ico(m.ico)}</span>
     <span class="cb-routine__body"><span class="cb-routine__title">${esc(m.t)}</span>${m.sub ? `<span class="cb-routine__sub">${esc(m.sub)}</span>` : ''}</span>
-    <span class="cb-routine__time">${ico('star', 'cb-ico--sm')}+${m.xp}</span></button>`;
+    <span class="cb-routine__time">+${m.xp} XP</span></button>`;
 }
 function habitMission(h) {
   const act = { check: 'habit', physical: 'physical', timer: 'timer-habit', salmo: 'salmo' }[h.kind];
@@ -228,7 +245,73 @@ function habitMission(h) {
 }
 function taskMission(t, late) {
   const xp = 20 + Math.round((t.mins || 0) / 5);
-  return { id: t.id, t: t.title, sub: `${t.mins || 0} min${late ? ' · atrasada (' + DAYS[t.day] + ')' : ''}`, xp, ico: t.block === 'pm' ? 'star' : 'check', tone: t.block === 'pm' ? 'sand' : 'mint', done: !!t.done, act: 'task', late };
+  return { id: t.id, t: t.title, sub: `${t.mins || 0} min${late ? ' · atrasada (' + DAYS[t.day] + ')' : ''}`, xp, ico: t.block === 'pm' ? 'briefcase' : 'check', tone: t.block === 'pm' ? 'sand' : 'mint', done: !!t.done, act: 'task', late };
+}
+
+/* ---------- aviso del coach (2 minutos) ---------- */
+const NOTICE_MS = 120000, NOTICE_KEY = 'coach.notice';
+let noticeTimer = null;
+function moodNotice(n) {
+  const cm = coachMsg(), m = MOOD_MSG[n];
+  const useCoach = n >= 3 && (cm.mode === 'direct' || cm.mode === 'celebrate');
+  const mode = useCoach ? cm.mode : m[0], label = useCoach ? cm.label : m[1], text = useCoach ? cm.msg : m[2];
+  return { until: Date.now() + NOTICE_MS, mode, label, text, saved: Store.mode === 'db' || Store.mode === 'api' ? 'Ánimo guardado en la base de datos' : 'Ánimo guardado' };
+}
+function showNotice(n) {
+  try { localStorage.setItem(NOTICE_KEY, JSON.stringify(n)); } catch (e) { /* ignorar */ }
+  drawNotice();
+}
+function hideNotice() {
+  try { localStorage.removeItem(NOTICE_KEY); } catch (e) { /* ignorar */ }
+  clearInterval(noticeTimer); noticeTimer = null;
+  const el = $('#notice'); if (el) { el.hidden = true; el.innerHTML = ''; }
+}
+function drawNotice() {
+  const el = $('#notice'); if (!el) return;
+  let n = null; try { n = JSON.parse(localStorage.getItem(NOTICE_KEY)); } catch (e) { n = null; }
+  if (!n || n.until <= Date.now()) { hideNotice(); return; }
+  el.hidden = false;
+  el.innerHTML = `<div class="notice notice--${n.mode}" role="status"><div class="notice__top"><span class="notice__who">Coach · ${esc(n.label)}</span><span class="notice__clock" data-notice-clock></span><button class="notice__x" data-act="closenotice" aria-label="Cerrar aviso">${ico('close', 'cb-ico--sm')}</button></div><p>${esc(n.text)}</p><small>${esc(n.saved || '')}</small><div class="notice__bar"><i data-notice-bar></i></div></div>`;
+  const tick = () => {
+    const left = n.until - Date.now();
+    if (left <= 0) { hideNotice(); return; }
+    const s = Math.ceil(left / 1000), c = el.querySelector('[data-notice-clock]'), b = el.querySelector('[data-notice-bar]');
+    if (c) c.textContent = `${Math.floor(s / 60)}:${pad(s % 60)}`;
+    if (b) b.style.width = (100 * left / NOTICE_MS).toFixed(1) + '%';
+  };
+  clearInterval(noticeTimer); tick(); noticeTimer = setInterval(tick, 1000);
+}
+
+/* ---------- reloj de cada bloque del día ---------- */
+function tzNow() {
+  const tz = (S.settings && S.settings.tz) || (C && C.tz) || undefined;
+  let p;
+  try { p = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hourCycle: 'h23', hour: '2-digit', minute: '2-digit', second: '2-digit' }).formatToParts(new Date()); } catch (e) { p = null; }
+  if (!p) { const d = new Date(); return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds(); }
+  const g = t => +p.find(x => x.type === t).value;
+  return g('hour') * 3600 + g('minute') * 60 + g('second');
+}
+const toSecs = hm => { const [h, m] = hm.split(':').map(Number); return h * 3600 + m * 60; };
+const hms = s => `${pad(Math.floor(s / 3600))}:${pad(Math.floor(s % 3600 / 60))}:${pad(s % 60)}`;
+function blockState(b, now) {
+  const from = toSecs(b.from), to = toSecs(b.to);
+  if (now >= from && now < to) return { st: 'active', text: `Quedan ${hms(to - now)}` };
+  if (now < from) return { st: 'pending', text: `Empieza en ${hms(from - now)}` };
+  return { st: 'done', text: 'Terminó' };
+}
+function tickBlocks() {
+  if (!C || document.hidden) return;
+  const now = tzNow();
+  document.querySelectorAll('[data-block]').forEach(el => {
+    const b = C.blocks.find(x => x.id === el.dataset.block); if (!b) return;
+    const s = blockState(b, now);
+    if (el.textContent !== s.text) el.textContent = s.text;
+    if (el.dataset.st !== s.st) { el.dataset.st = s.st; const h = el.closest('.sec-h'); if (h) h.classList.toggle('is-active', s.st === 'active'); }
+  });
+}
+function blockHead(id) {
+  const b = C.blocks.find(x => x.id === id), s = blockState(b, tzNow());
+  return `<div class="sec-h block${s.st === 'active' ? ' is-active' : ''}"><h2>${ico(b.ico)} ${esc(b.t)}</h2><span class="btimer" data-block="${b.id}" data-st="${s.st}" title="${b.from} a ${b.to}">${s.text}</span></div>`;
 }
 
 /* ---------- vistas ---------- */
@@ -247,10 +330,14 @@ function dayInfo() {
 }
 function header() {
   const st = streakInfo(), lv = levelInfo(), sl = SLOT[daySlot()];
+  const hint = st.n > 0 ? (st.risk ? 'Haz 2 acciones hoy' : '¡Racha asegurada hoy!') : 'Empieza tu racha hoy';
+  const racha = `<div class="hs-line"><b class="hs-num">${st.n}</b><span>${st.n === 1 ? 'día' : 'días'} de racha</span></div><small>${hint}</small>`;
   return `<div class="hd"><div class="grow"><p>${sl[0]}</p><h1>Esteban</h1></div>
-    <div class="acts"><span class="pill flame" title="Racha">${ico('flame', 'cb-ico--sm')}${st.n}</span><span class="pill" title="XP">${ico('star', 'cb-ico--sm')}${S.xp}</span>
-    <button class="avatar" data-act="goto" data-id="mas" aria-label="Ajustes">E</button></div></div>
-    <div class="lvl"><div class="row sb"><b>Nivel ${lv.lvl} · ${esc(lv.name)}</b><small>faltan ${lv.left} XP</small></div><div class="bar"><i style="width:${lv.pct}%"></i></div></div>`;
+    <button class="avatar" data-act="goto" data-id="mas" aria-label="Ajustes">E</button></div>
+    <div class="hstats">
+      <div class="hs hs--racha" aria-label="Racha">${ico('flame', 'hs-ico')}<div class="hs-body">${racha}</div></div>
+      <div class="hs hs--nivel" aria-label="Nivel"><div class="hs-body"><span class="hs-lab"><b>Nivel ${lv.lvl}</b> · ${esc(lv.name)}</span><div class="bar"><i style="width:${lv.pct}%"></i></div><small>faltan ${lv.left} XP</small></div></div>
+    </div>`;
 }
 function bannerHtml() {
   const k = daySlot(), sl = SLOT[k];
@@ -284,7 +371,6 @@ function viewHoy() {
   const notes = r.notes || {};
   let h = header() + weekStrip() + dayInfo() + bannerHtml();
   h += moodHtml(r);
-  h += `<div class="coachcard coachcard--${cm.mode}"><span class="who">Coach · ${cm.label}</span><p>${esc(cm.msg)}</p></div>`;
   const lev = leverHabit(r);
   const minimal = !!(S.learned && S.learned.load && S.learned.load.minimal) && !showAll;
   if (!S.settings.notif) h += `<div class="cb-reminder" style="margin:var(--space-4) 0"><div><h3 class="cb-reminder__title">Activa tus recordatorios</h3><p class="cb-reminder__text">Que no se te pase la rutina de la mañana ni el bloque de Iguana.</p><button class="cb-btn cb-btn--brown cb-btn--sm" data-act="notif">Activar ahora</button></div>${BELL}</div>`;
@@ -298,10 +384,10 @@ function viewHoy() {
   if (lev && !r.habits[lev.habit.id]) h += `<div class="card lever"><span class="cap">${ico('spark', 'cb-ico--sm')} Tu palanca de hoy</span><b>${esc(lev.habit.t)}</b><p class="mut">${esc(lev.why)} Hazla primero.</p><button class="cb-btn cb-btn--sm" data-act="lever" data-id="${lev.habit.id}">Empezar</button></div>`;
   const od = lateToday();
   if (od.length) h += `<div class="sec-h"><h2>${ico('clock')} Atrasadas</h2></div>` + od.map(t => missionRow(taskMission(t, true))).join('');
-  h += `<div class="sec-h"><h2>${ico('sun')} Mañana</h2><small>antes de las 7:30</small></div>` + slot('manana') + am.map(t => missionRow(taskMission(t))).join('');
-  h += `<div class="sec-h"><h2>${ico('trail')} Tarde</h2></div>` + slot('tarde');
-  h += `<div class="sec-h"><h2>${ico('moon')} Noche · Iguana</h2><small>20:00–22:00</small></div>` + (pm.length ? pm.map(t => missionRow(taskMission(t))).join('') : `<p class="mut">No hay tareas de noche hoy. Añádelas con el botón + o en la pestaña Semana.</p>`);
-  h += `<div class="sec-h"><h2>${ico('bed')} Cierre</h2></div>` + slot('cierre');
+  h += blockHead('manana') + slot('manana') + am.map(t => missionRow(taskMission(t))).join('');
+  h += blockHead('tarde') + slot('tarde');
+  h += blockHead('noche') + (pm.length ? pm.map(t => missionRow(taskMission(t))).join('') : `<p class="mut">No hay tareas de noche hoy. Añádelas con el botón + o en la pestaña Semana.</p>`);
+  h += blockHead('cierre') + slot('cierre');
   return h;
 }
 function viewSemana() {
@@ -426,6 +512,40 @@ async function askClaude() {
   } catch (e) { toast(e && e.code === 'not_granted' ? 'No diste permiso a Claude' : 'No se pudo analizar ahora'); }
   render();
 }
+const PUSH_TEXT = {
+  unsupported: 'Este navegador no admite notificaciones push. En iPhone, instala la app en la pantalla de inicio (iOS 16.4 o superior).',
+  noserver: 'Los avisos necesitan la app publicada en tu Worker de Cloudflare. Aquí no hay servidor.',
+  notoken: 'Escribe tu código de acceso para conectar con tu Worker y poder activar los avisos.',
+  denied: 'El permiso de notificaciones está bloqueado. Actívalo en los ajustes del navegador para este sitio.',
+  off: 'Te preguntaré «¿Lo hiciste?» a la hora de cada misión, con botones Sí y No.',
+  on: 'Activados en este dispositivo. Responde Sí o No desde la notificación y la lista se actualiza sola.'
+};
+async function paintPush() {
+  const t = document.querySelector('[data-push-text]'), a = document.querySelector('[data-push-actions]');
+  if (!t || !a) return;
+  const st = await Push.state();
+  t.textContent = PUSH_TEXT[st];
+  a.innerHTML = st === 'off' ? '<button class="cb-btn" data-act="pushon">Activar avisos push</button>' : st === 'on' ? '<button class="cb-btn cb-btn--secondary" data-act="pushtest">Enviar push de prueba</button><div class="gap"></div><button class="cb-btn cb-btn--secondary" data-act="pushoff">Desactivar en este dispositivo</button>' : '';
+}
+// Si llegas desde una notificación sin botones (p. ej. iPhone), la app pregunta aquí mismo.
+function askFromUrl() {
+  const q = new URLSearchParams(location.search);
+  if (!q.get('ask')) return;
+  const p = { i: q.get('ask'), d: q.get('d'), r: q.get('r'), e: q.get('e'), sy: q.get('sy'), sn: q.get('sn') };
+  try { history.replaceState(null, '', location.pathname); } catch (e) { /* ignorar */ }
+  const h = C.habits.find(x => x.id === p.i);
+  let title = h && h.t;
+  if (!title) [S.plan].concat(Object.values(S.history)).filter(Boolean).forEach(pl => (pl.tasks || []).forEach(t => { if (t.id === p.i) title = t.title; }));
+  openSheet(`<h1>¿Lo hiciste?</h1><p>${esc(title || 'Esta misión')}</p><button class="cb-btn" id="ask-yes">Sí, lo hice</button><button class="cb-btn cb-btn--secondary" id="ask-no">No</button><button class="cb-btn cb-btn--ghost" id="ask-x">Cerrar</button>`);
+  $('#ask-x').onclick = closeSheet;
+  const send = async a => {
+    closeSheet();
+    const j = await Push.answer(p, a);
+    toast(j.ok ? (a === 'yes' ? `Anotado: +${j.xp || 0} XP` : (j.retry ? 'Anotado. Te pregunto de nuevo en 30 min.' : 'Anotado como no cumplido.')) : 'Esa pregunta ya estaba respondida o caducó.');
+    if (Store.mode === 'api') Store.pull();
+  };
+  $('#ask-yes').onclick = () => send('yes'); $('#ask-no').onclick = () => send('no');
+}
 function animateBars() {
   requestAnimationFrame(() => requestAnimationFrame(() => document.querySelectorAll('.cb-cap__fill[data-v]').forEach(f => f.style.setProperty('--v', f.dataset.v))));
 }
@@ -453,6 +573,8 @@ function viewIguana() {
 function viewMas() {
   const s = S.settings;
   return `<div class="hd"><h1>Ajustes</h1></div>
+  <div class="card" id="pushcard"><b>Avisos «¿Lo hiciste?»</b><p class="mut" data-push-text>Revisando…</p><div data-push-actions></div>
+    <label for="set-token">Código de acceso</label><input type="password" id="set-token" autocomplete="off" placeholder="El APP_TOKEN de tu Worker" value="${esc(Store.token())}"><div class="gap"></div><button class="cb-btn cb-btn--secondary" data-act="savetoken">Guardar código</button></div>
   <div class="card"><b>Tus datos</b><p class="mut" data-store-status>${esc(Store.label())}</p><p class="mut">Tu ánimo, tus misiones, tus planes y lo que aprendo de ti se guardan en la base de datos de este artefacto (cuando está disponible) y siempre en este dispositivo.</p><button class="cb-btn cb-btn--secondary" data-act="relearn">Recalcular lo aprendido</button></div>
   <div class="card"><b>Notificaciones</b><p class="mut">La app puede avisarte mientras está abierta. Para alarmas aunque esté cerrada, descarga el calendario (.ics) y ábrelo en tu celular.</p>
     <button class="cb-btn" data-act="notif">${s.notif ? 'Notificaciones activadas' : 'Activar notificaciones'}</button><div class="gap"></div>
@@ -646,6 +768,7 @@ function render() {
   $('#app').innerHTML = v();
   document.querySelectorAll('#tabs [data-tab]').forEach(b => b.classList.toggle('is-on', b.dataset.tab === tab));
   animateBars();
+  if (tab === 'mas') paintPush();
 }
 document.addEventListener('click', e => {
   const tb = e.target.closest('#tabs [data-tab]');
@@ -674,9 +797,19 @@ document.addEventListener('click', e => {
       if (t.done) setTask(id, false); else openTimer({ title: t.title, secs: (t.mins || 15) * 60, onDone: () => setTask(id, true) });
       break;
     }
-    case 'mood': { const r = rec(todayStr()); r.mood = +id; r.moodAt = hourNow(); (r.moods = r.moods || []).push({ n: +id, h: hourNow() }); if (r.moods.length > 12) r.moods.shift(); save(); render(); toast(Store.mode === 'db' ? 'Ánimo guardado en la base de datos' : 'Ánimo guardado'); if (navigator.vibrate) navigator.vibrate(12); break; }
+    case 'mood': {
+      const r = rec(todayStr()); r.mood = +id; r.moodAt = hourNow(); (r.moods = r.moods || []).push({ n: +id, h: hourNow() }); if (r.moods.length > 12) r.moods.shift();
+      save(); render(); showNotice(moodNotice(+id));
+      if (navigator.vibrate) navigator.vibrate(12);
+      break;
+    }
+    case 'closenotice': hideNotice(); break;
     case 'showall': showAll = true; render(); break;
     case 'lever': { const b = document.querySelector(`.cb-routine[data-id="${id}"]`); if (b) b.click(); break; }
+    case 'savetoken': { Store.setToken(($('#set-token').value || '').trim()); toast('Código guardado'); Store.connect(S, applyRemote).then(() => { render(); }); break; }
+    case 'pushon': Push.enable().then(() => { toast('Avisos activados'); paintPush(); }).catch(e => { toast(e.message); paintPush(); }); break;
+    case 'pushoff': Push.disable().then(() => { toast('Avisos desactivados'); paintPush(); }); break;
+    case 'pushtest': Push.test().then(() => toast('Prueba enviada')).catch(e => toast(e.message)); break;
     case 'relearn': save(); toast('Lo aprendido se actualizó'); render(); break;
     case 'askclaude': askClaude(); break;
     case 'selday': selDay = +id === todayIdx() ? null : +id; render(); break;
@@ -757,12 +890,20 @@ document.addEventListener('change', e => {
 });
 
 fetch('data/content.json').then(r => r.json()).then(j => {
-  C = j; S = load(); render(); scheduleLocal();
+  C = j; S = load(); render(); scheduleLocal(); drawNotice();
+  setInterval(tickBlocks, 1000); document.addEventListener('visibilitychange', () => { tickBlocks(); drawNotice(); });
   Store.onChange = kind => {
     if (kind === 'status') { document.querySelectorAll('[data-store-status]').forEach(el => { el.textContent = Store.label(); }); return; }
     const a = document.activeElement;
     if (!(a && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) && !$('#overlay').innerHTML) render();
   };
-  Store.connect(S, applyRemote).then(ok => { if (ok) { save(); render(); } });
+  Store.onConflict = onConflict;
+  askFromUrl();
+  Store.connect(S, applyRemote).then(ok => { if (ok) { save(); } render(); });
+  if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', ev => {
+    if (!ev.data) return;
+    if (ev.data.type === 'refresh' && Store.mode === 'api') Store.pull();
+    if (ev.data.type === 'open') { try { const u = new URL(ev.data.url); history.replaceState(null, '', u.pathname + u.search); } catch (e) { /* ignorar */ } askFromUrl(); }
+  });
 }).catch(() => { $('#app').innerHTML = '<p>No se pudo cargar el contenido. Abre la app desde un servidor web.</p>'; });
 if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});

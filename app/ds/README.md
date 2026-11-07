@@ -42,8 +42,15 @@ Cumbre es el sistema visual de un coach de hábitos para el celular: cada día s
 ## Iconografía
 
 - Glifos rellenos con esquinas redondeadas, en rejilla de 24 px (`.cb-ico-*`); se pintan con el color del texto. Sin trazos finos: pesan igual que el texto en negrita.
-- Existen: añadir, check, cerrar, atrás, más, reloj, gota, campana, montaña, loto, luna, sol, libro, chat, celular apagado, cama, casa, diario, usuario, llama, estrella, compartir, gráfica, cerebro y chispa.
+- Existen: añadir, check, cerrar, atrás, más, reloj, gota, campana, montaña, loto, luna, sol, libro, chat, celular apagado, cama, casa, diario, usuario, llama, maletín, estrella, compartir, gráfica, cerebro y chispa.
+- **No uses estrellas** para puntos ni para listas: el avance se dice con la racha en días y el nivel (`HeaderStats`). El maletín marca el trabajo de Iguana.
 - Los iconos van en cuadros pastel de 40 px para filas, o sueltos a 18 px dentro de botones y chips. La chispa y el cerebro marcan lo que la app aprendió de la persona.
+
+## Avisos y relojes
+
+- El coach habla en un aviso flotante de 2 minutos (`CoachNotice`) que aparece al elegir una carita; no hay tarjeta fija del coach. Cuenta de 2:00 a 0:00 y desaparece sola.
+- Cada bloque del día muestra su cuenta regresiva en tiempo real (`BlockTimer`): «Quedan 01:23:45», «Empieza en 03:10:05» o «Terminó». Solo el bloque activo se resalta.
+- Los push preguntan «¿Lo hiciste?» con dos botones (`AskPush`): «Sí, lo hice» y «No». Un «No» se repite a los 30 minutos y, si vuelve a ser «No», la misión queda como no cumplida.
 
 ## Movimiento
 

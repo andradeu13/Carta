@@ -1,0 +1,14 @@
+{
+  "name": "cumbre-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"test/*.test.js\"",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "vapid": "node scripts/vapid.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
