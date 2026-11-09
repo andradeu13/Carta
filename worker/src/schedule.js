@@ -57,3 +57,18 @@ export function nextActions({ items, asks, nowMs, nowSecs }) {
   }
   return { send: sent >= MAX_PER_DAY ? [] : send.slice(0, 1), miss };
 }
+
+/* Lunes entre las 20:00 y las 22:00: pedir las tareas de la semana, una sola vez y solo si el plan está vacío. */
+export const PLAN_FROM = 20 * 3600, PLAN_TO = 22 * 3600;
+export function planDue({ wd, secs, asks, plan }) {
+  if (wd !== 0 || secs < PLAN_FROM || secs > PLAN_TO) return false;
+  if (asks._plan) return false;
+  return !(plan && plan.tasks && plan.tasks.length);
+}
+export const planPayload = date => ({
+  title: 'Es lunes por la noche',
+  body: '¿Qué tareas tienes esta semana? Dímelas por voz o texto y las ordeno por día.',
+  tag: `plan-${date}`,
+  actions: [],
+  data: { date, url: '/?plan=1' }
+});

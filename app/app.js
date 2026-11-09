@@ -93,14 +93,19 @@ function remindersList() {
     (g.milestones || []).forEach(m => { if (m.due) out.push({ src: 'h', id: g.id + ':' + m.id, gid: g.id, title: m.t, date: m.due, time: '', important: true, done: !!m.done, note: g.title }); });
     if (g.due && goalPct(g) < 100 && daysTo(g.due) <= 30) out.push({ src: 'g', id: g.id + ':due', gid: g.id, title: 'Fecha límite: ' + g.title, date: g.due, time: '', important: true, done: false, note: '' });
   });
-  return out.filter(r => r.date).sort((a, b) => (a.date + (a.time || '24')).localeCompare(b.date + (b.time || '24')));
+  const seen = {};
+  [S.plan, planCurrent()].filter(Boolean).forEach(pl => {
+    if (seen[pl.weekStart]) return; seen[pl.weekStart] = 1;
+    (pl.tasks || []).forEach(t => out.push({ src: 't', id: 'T~' + t.id, title: t.title, date: fmt(addDays(parse(pl.weekStart), t.day)), time: '', sk: t.block === 'pm' ? '20:00' : '07:00', blk: t.block === 'pm' ? 'Noche' : 'Día', important: false, done: !!t.done, note: '' }));
+  });
+  return out.filter(r => r.date).sort((a, b) => (a.date + (a.time || a.sk || '24')).localeCompare(b.date + (b.time || b.sk || '24')));
 }
 function nextReminder() {
   const open = remindersList().filter(r => !r.done && daysTo(r.date) <= 60);
   return open.find(r => daysTo(r.date) < 0) || open[0] || null;      // primero lo atrasado, luego lo más próximo
 }
 function whenText(r) {
-  const d = daysTo(r.date), t = r.time ? ' · ' + r.time : '';
+  const d = daysTo(r.date), t = r.time ? ' · ' + r.time : (r.blk ? ' · ' + r.blk : '');
   if (d < 0) return `Atrasado · hace ${-d} ${-d === 1 ? 'día' : 'días'}`;
   if (d === 0) return 'Hoy' + t;
   if (d === 1) return 'Mañana' + t;
@@ -372,12 +377,14 @@ function header() {
   const nivel = `Nivel ${lv.lvl}, ${lv.name}`, racha = `${st.n} ${st.n === 1 ? 'día' : 'días'} de racha`;
   return `<div class="hbar">
     <button class="avatar" data-act="profile" aria-label="Perfil de ${esc(name)}">${esc(name[0].toUpperCase())}</button>
-    <div class="hbar__who"><p>${sl[0]}</p><h1>${esc(name)}</h1></div>
-    <div class="hbar__right">
-      <button class="hbtn hbtn--flame" data-peek="racha" aria-label="${racha}. Toca para ver el detalle; mantén pulsado para un vistazo">${ico('flame')}<span class="hbadge">${st.n}</span></button>
-      <button class="hbtn hbtn--level" data-peek="nivel" aria-label="${nivel}. Toca para ver el detalle; mantén pulsado para un vistazo">${ico('trail')}<span class="hbadge">${lv.lvl}</span></button>
-      <button class="hbtn" data-act="goto" data-id="mas" aria-label="Ajustes">${ico('gear')}</button>
-    </div></div>`;
+    <span class="hbar__brand">Cumbre</span>
+    <button class="hbtn" data-act="goto" data-id="mas" aria-label="Ajustes">${ico('gear')}</button></div>
+    <div class="hgreet">
+      <div class="hbar__who"><p>${sl[0]}</p><h1>${esc(name)}</h1></div>
+      <div class="hbar__right">
+        <button class="hbtn hbtn--flame" data-peek="racha" aria-label="${racha}. Toca para ver el detalle; mantén pulsado para un vistazo">${ico('flame')}<span class="hbadge">${st.n}</span></button>
+        <button class="hbtn hbtn--level" data-peek="nivel" aria-label="${nivel}. Toca para ver el detalle; mantén pulsado para un vistazo">${ico('trail')}<span class="hbadge">${lv.lvl}</span></button>
+      </div></div>`;
 }
 function reminderCard() {
   const r = nextReminder();
@@ -418,7 +425,7 @@ function viewHoy() {
   const foc = (S.claude && S.claude.focus) || [];
   const slot = s => C.habits.filter(h => h.slot === s).sort((a, b) => (foc.includes(b.id) - foc.includes(a.id))).map(habitMission).map(missionRow).join('');
   const notes = r.notes || {};
-  let h = header() + reminderCard() + bannerHtml();
+  let h = header() + reminderCard() + intakeCard() + bannerHtml();
   h += moodHtml(r);
   const lev = leverHabit(r);
   const minimal = !!(S.learned && S.learned.load && S.learned.load.minimal) && !showAll;
@@ -444,7 +451,7 @@ function viewSemana() {
   const p = planCurrent();
   let h = `<h1>Semana</h1>`;
   const ahead = S.plan && S.plan.weekStart > thisMon();
-  h += `<div class="card"><button class="cb-btn" data-act="wiz">${todayIdx() === 6 ? 'Planificar la próxima semana' : p ? 'Replanificar la semana' : 'Planificar mi semana'}</button><p class="mut">${ahead ? 'Ya tienes listo el plan de la próxima semana.' : 'Hazlo los domingos (15 min).'}</p></div>`;
+  h += `<div class="card"><button class="cb-btn" data-act="wiz">${todayIdx() === 6 ? 'Planificar la próxima semana' : p ? 'Replanificar la semana' : 'Planificar mi semana'}</button><p class="mut">${ahead ? 'Ya tienes listo el plan de la próxima semana.' : 'Los lunes por la noche te pregunto tus tareas; el plan completo toma 15 min.'}</p></div>`;
   if (!p) return h;
   h += `<div class="card"><b>Prioridades</b>${p.priorities.filter(Boolean).map((x, i) => `<p>${i + 1}. ${esc(x)}</p>`).join('') || '<p class="mut">Sin prioridades.</p>'}</div>`;
   h += `<div class="card">`;
@@ -542,13 +549,80 @@ function seedGoals() {
   save();
 }
 
+
+/* ---------- lunes por la noche: dime tus tareas (voz o texto) ---------- */
+let itk = null;   // { text, items|null, rec, listening }
+const intakeDue = () => todayIdx() === 0 && tzNow() >= 19 * 3600 && S.settings.intakeDone !== thisMon() && S.settings.intakeSnooze !== todayStr();
+function intakeCard() {
+  if (!intakeDue()) return '';
+  return `<div class="intake"><span class="intake__ico">${ico('mic')}</span><div class="intake__b"><b>Es lunes por la noche</b><span>¿Qué tareas tienes esta semana? Dímelas y las ordeno por día.</span></div>
+    <button class="cb-btn cb-btn--sm" data-act="intake">Decir mis tareas</button><button class="intake__x" data-act="intakesnooze" aria-label="Ahora no">${ico('close', 'cb-ico--sm')}</button></div>`;
+}
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+function stopListening() { if (itk && itk.rec) { try { itk.rec.stop(); } catch (e) { /* ya detenido */ } } if (itk) itk.listening = false; }
+function openIntake() {
+  itk = { text: '', items: null, rec: null, listening: false };
+  drawIntake();
+}
+function drawIntake() {
+  const w = itk, nm = (S.settings.name || 'Esteban').trim() || 'Esteban';
+  if (!w.items) {
+    openSheet(`<h1>Tus tareas de la semana</h1>
+      <p class="mut">${esc(nm)}, cuéntame todo lo que tienes que hacer. Puedes hablar o escribir, por ejemplo: «El martes enviar la propuesta a la barbería, el jueves 5 mensajes por la noche, el viernes diseñar el post una hora».</p>
+      <textarea id="itk-text" rows="6" placeholder="Habla con el micrófono o escribe aquí" aria-label="Tus tareas de la semana">${esc(w.text)}</textarea>
+      <div class="row" style="margin-top:12px">${SR ? `<button class="cb-btn cb-btn--secondary mic${w.listening ? ' is-on' : ''}" data-act="itkmic" aria-pressed="${w.listening}">${ico('mic', 'cb-ico--sm')}<span>${w.listening ? 'Detener' : 'Hablar'}</span></button>` : ''}<button class="cb-btn grow" data-act="itkparse">Ordenar mis tareas</button></div>
+      ${SR ? '' : '<p class="mut">Tu navegador no tiene dictado dentro de la app: toca el micrófono del teclado de tu celular para hablar.</p>'}
+      <button class="cb-btn cb-btn--ghost" data-act="itkclose">Ahora no</button>`);
+    return;
+  }
+  const rows = w.items.map((t, i) => `<div class="irow"><input class="irow__t" data-ib="${i}.title" value="${esc(t.title)}" aria-label="Tarea ${i + 1}" maxlength="120">
+      <select data-ib="${i}.day" aria-label="Día">${DAYS_FULL.map((d, k) => `<option value="${k}"${t.day === k ? ' selected' : ''}>${d}</option>`).join('')}</select>
+      <select data-ib="${i}.block" aria-label="Momento"><option value="pm"${t.block === 'pm' ? ' selected' : ''}>Noche</option><option value="am"${t.block === 'am' ? ' selected' : ''}>Día</option></select>
+      <input type="number" class="irow__m" data-ib="${i}.mins" value="${t.mins}" min="5" step="5" aria-label="Minutos">
+      <button class="x" data-act="itkrm" data-id="${i}" aria-label="Quitar">${ico('close', 'cb-ico--sm')}</button></div>`).join('');
+  openSheet(`<h1>${w.items.length} ${w.items.length === 1 ? 'tarea' : 'tareas'}</h1><p class="mut">Revísalas: puedes cambiar el texto, el día, el momento o los minutos.</p>
+    <div class="stack">${rows || '<p class="mut">No entendí ninguna tarea. Vuelve y escribe una por frase.</p>'}</div>
+    <button class="cb-btn" data-act="itkadd"${w.items.length ? '' : ' disabled'}>Añadir a mi semana</button><button class="cb-btn cb-btn--secondary" data-act="itkback">Volver a editar</button>`);
+}
+function toggleMic() {
+  const w = itk; if (!w) return;
+  if (w.listening) { stopListening(); drawIntake(); return; }
+  const ta = $('#itk-text'); if (ta) w.text = ta.value;
+  let r;
+  try { r = new SR(); } catch (e) { toast('No pude abrir el micrófono'); return; }
+  r.lang = 'es-EC'; r.continuous = true; r.interimResults = true;
+  const base = w.text ? w.text.replace(/\s*$/, ' ') : '';
+  let finals = '';
+  r.onresult = ev => {
+    let interim = '';
+    for (let i = ev.resultIndex; i < ev.results.length; i++) { const t = ev.results[i][0].transcript; if (ev.results[i].isFinal) finals += t + '. '; else interim += t; }
+    w.text = base + finals + interim;
+    const el = $('#itk-text'); if (el) el.value = w.text;
+  };
+  r.onerror = ev => { w.listening = false; toast(ev.error === 'not-allowed' || ev.error === 'service-not-allowed' ? 'Permite el micrófono para dictar' : 'No te escuché bien, intenta otra vez'); if (itk === w && !w.items) drawIntake(); };
+  r.onend = () => { if (w.listening) { w.listening = false; if (itk === w && !w.items) { const el = $('#itk-text'); if (el) w.text = el.value; drawIntake(); } } };
+  w.rec = r; w.listening = true;
+  try { r.start(); } catch (e) { w.listening = false; toast('No pude abrir el micrófono'); return; }
+  drawIntake();
+  const el = $('#itk-text'); if (el) el.value = w.text;
+}
+function addIntakeTasks() {
+  const w = itk; if (!w || !w.items.length) return;
+  let p = planCurrent();
+  if (!p) { p = S.plan = { weekStart: thisMon(), priorities: ['', '', ''], tasks: [], team: [{ who: 'Developer', what: '', when: '' }, { who: 'Financiero', what: '', when: '' }, { who: 'Yo', what: '', when: '' }] }; }
+  w.items.forEach(t => { const title = String(t.title || '').trim(); if (title) p.tasks.push({ id: uid(), title, day: Math.max(0, Math.min(6, +t.day || 0)), block: t.block === 'am' ? 'am' : 'pm', mins: Math.max(5, +t.mins || 30), done: null }); });
+  S.settings.intakeDone = thisMon();
+  stopListening(); itk = null; closeSheet(); save(); render();
+  toast('Tareas añadidas a tu semana');
+}
+
 /* ---------- recordatorios: lista y editor ---------- */
 let red = null;   // editor de recordatorios: { id, draft, confirm }
 function openReminders() {
   const all = remindersList(), open = all.filter(r => !r.done), done = all.filter(r => r.done).slice(-5);
   const row = r => `<div class="rrow${r.done ? ' is-done' : ''}"><button class="rrow__chk" data-act="rdone" data-id="${esc(r.id)}" aria-pressed="${r.done}" aria-label="${r.done ? 'Reabrir' : 'Marcar como hecho'}: ${esc(r.title)}"><span class="cb-check">${ico('check')}</span></button>
-    <div class="rrow__b"><b>${esc(r.title)}</b><small>${parse(r.date).getDate()} ${MONTHS[parse(r.date).getMonth()]} · ${whenText(r)}${r.src === 'h' ? ` · hito de «${esc(r.note)}»` : ''}</small></div>
-    ${r.src === 'r' ? `<button class="x" data-act="redit" data-id="${r.id}" aria-label="Editar ${esc(r.title)}">${ico('pencil', 'cb-ico--sm')}</button>` : `<button class="x" data-act="gedit" data-id="${r.gid}" aria-label="Ver objetivo">${ico('target', 'cb-ico--sm')}</button>`}</div>`;
+    <div class="rrow__b"><b>${esc(r.title)}</b><small>${parse(r.date).getDate()} ${MONTHS[parse(r.date).getMonth()]} · ${whenText(r)}${r.src === 'h' ? ` · hito de «${esc(r.note)}»` : ''}${r.src === 't' ? ' · tarea de la semana' : ''}</small></div>
+    ${r.src === 't' ? '' : r.src === 'r' ? `<button class="x" data-act="redit" data-id="${r.id}" aria-label="Editar ${esc(r.title)}">${ico('pencil', 'cb-ico--sm')}</button>` : `<button class="x" data-act="gedit" data-id="${r.gid}" aria-label="Ver objetivo">${ico('target', 'cb-ico--sm')}</button>`}</div>`;
   openSheet(`<h1>Recordatorios</h1>
     ${open.length ? `<div class="stack">${open.map(row).join('')}</div>` : '<p class="mut">No tienes nada pendiente. Agrega algo importante para hoy o para los próximos días.</p>'}
     ${done.length ? `<h2 class="sub">Hechos</h2><div class="stack">${done.map(row).join('')}</div>` : ''}
@@ -571,6 +645,7 @@ function drawReminderEditor() {
     <button class="cb-btn cb-btn--ghost" data-act="rback">Volver a la lista</button>`);
 }
 function toggleReminder(id) {
+  if (id.startsWith('T~')) { const tid = id.slice(2), p = [S.plan, planCurrent()].filter(Boolean).find(pl => (pl.tasks || []).some(t => t.id === tid)); const t = p && p.tasks.find(x => x.id === tid); if (t) setTask(tid, !t.done); return; }
   const [a, b] = id.split(':');
   if (b) { const g = S.goals[a], m = g && (g.milestones || []).find(x => x.id === b); if (m) { m.done = !m.done; putGoal(g); } return; }
   const r = S.reminders[id]; if (r && !r.deleted) { r.done = !r.done; putReminder(r); }
@@ -692,6 +767,7 @@ async function paintPush() {
 // Si llegas desde una notificación sin botones (p. ej. iPhone), la app pregunta aquí mismo.
 function askFromUrl() {
   const q = new URLSearchParams(location.search);
+  if (q.get('plan')) { try { history.replaceState(null, '', location.pathname); } catch (e) { /* ignorar */ } openIntake(); return; }
   if (!q.get('ask')) return;
   const p = { i: q.get('ask'), d: q.get('d'), r: q.get('r'), e: q.get('e'), sy: q.get('sy'), sn: q.get('sn') };
   try { history.replaceState(null, '', location.pathname); } catch (e) { /* ignorar */ }
@@ -951,6 +1027,18 @@ document.addEventListener('click', e => {
     }
     case 'pcancel': case 'rclose': case 'gcancel': closeSheet(); break;
     case 'reminders': openReminders(); break;
+    case 'intake': openIntake(); break;
+    case 'intakesnooze': S.settings.intakeSnooze = todayStr(); save(); render(); break;
+    case 'itkmic': toggleMic(); break;
+    case 'itkparse': {
+      const el = $('#itk-text'); if (el) itk.text = el.value;
+      if (!itk.text.trim()) { toast('Dime o escribe tus tareas primero'); break; }
+      stopListening(); itk.items = Intake.parseTasks(itk.text, todayIdx()); drawIntake(); break;
+    }
+    case 'itkback': itk.items = null; drawIntake(); break;
+    case 'itkrm': itk.items.splice(+id, 1); drawIntake(); break;
+    case 'itkadd': addIntakeTasks(); break;
+    case 'itkclose': stopListening(); itk = null; closeSheet(); break;
     case 'rdone': { toggleReminder(id); const open = !$('#overlay').hidden; render(); if (open) keepScroll(openReminders); break; }
     case 'radd': openReminderEditor(null); break;
     case 'redit': openReminderEditor(id); break;
@@ -1039,8 +1127,8 @@ document.addEventListener('click', e => {
       break;
     }
     case 'fab':
-      if (!planCurrent()) { toast('Primero planifica tu semana'); tab = 'semana'; render(); break; }
-      openSheet(`<h1>Añadir tarea</h1>${addTaskForm('fab').replace('class="card"', 'class="stack"')}<button class="cb-btn cb-btn--secondary" id="fclose">Cerrar</button>`);
+      if (!planCurrent()) { openIntake(); break; }
+      openSheet(`<h1>Añadir tarea</h1><button class="cb-btn cb-btn--secondary" data-act="intake">${ico('mic', 'cb-ico--sm')}Dictar o escribir varias</button>${addTaskForm('fab').replace('class="card"', 'class="stack"')}<button class="cb-btn cb-btn--secondary" id="fclose">Cerrar</button>`);
       $('#fclose').onclick = closeSheet;
       break;
     case 'wiz': startWizard(); break;
@@ -1106,6 +1194,7 @@ document.addEventListener('keyup', e => { if (e.key === 'i' || e.key === 'Shift'
 document.addEventListener('input', e => {
   if (e.target.dataset.gb && ged) setGoalDraft(e.target);
   if (e.target.dataset.rb && red) setRemDraft(e.target);
+  if (e.target.dataset.ib && itk && itk.items) { const [i, k] = e.target.dataset.ib.split('.'); const t = itk.items[+i]; if (t) t[k] = (k === 'title' || k === 'block') ? e.target.value : +e.target.value; }
   const b = e.target.dataset.bind;
   if (b && wiz) setPath(wiz.draft, b.replace('prio', 'priorities'), e.target.value);
   if (e.target.id === 'set-bed') { S.settings.bedtime = e.target.value; save(); }
@@ -1114,6 +1203,7 @@ document.addEventListener('input', e => {
 document.addEventListener('change', e => {
   if (e.target.dataset.gb && ged) setGoalDraft(e.target);
   if (e.target.dataset.rb && red) setRemDraft(e.target);
+  if (e.target.dataset.ib && itk && itk.items) { const [i, k] = e.target.dataset.ib.split('.'); const t = itk.items[+i]; if (t) t[k] = (k === 'title' || k === 'block') ? e.target.value : +e.target.value; }
   if (e.target.dataset.carry && wiz) wiz.carry[e.target.dataset.carry] = e.target.checked;
   if (e.target.id === 'imp' && e.target.files[0]) {
     const f = e.target.files[0], rd = new FileReader();

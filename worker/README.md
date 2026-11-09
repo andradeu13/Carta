@@ -62,3 +62,8 @@ npm run dev                   # http://localhost:8787 con KV local
 - El cron tiene precisión de un minuto: el aviso puede llegar hasta un minuto tarde.
 - Los cambios en KV tardan hasta ~1 minuto en verse desde otro lugar del mundo; para una sola persona no se nota.
 - Plan gratuito de Workers: sobra para una persona (el cron lee ~4 valores por minuto y escribe solo cuando algo cambia).
+
+## Aviso de los lunes por la noche
+Cada lunes entre las 20:00 y las 22:00 (hora de `TZ`), si el plan de esa semana todavía no tiene tareas, el cron envía **un** push
+«Es lunes por la noche · ¿Qué tareas tienes esta semana?». Al tocarlo se abre la app en `/?plan=1`, donde dictas (micrófono) o escribes
+las tareas y la app las ordena por día. Si ya añadiste tareas desde la app, no se envía.

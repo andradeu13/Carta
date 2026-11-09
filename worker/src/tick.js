@@ -1,7 +1,7 @@
 /* Cron de cada minuto: pregunta «¿Lo hiciste?» por push y da por no cumplido lo que no se hizo. */
 import { getDoc, getAsks, putAsks, getSub } from './kv.js';
 import { getContent } from './content.js';
-import { askList, nextActions, localParts, mondayOf } from './schedule.js';
+import { askList, nextActions, localParts, mondayOf, planDue, planPayload } from './schedule.js';
 import { signAnswer } from './auth.js';
 import { sendPush } from './push.js';
 import { markMissed } from './answer.js';
@@ -34,6 +34,13 @@ export async function tick(env, nowMs = Date.now(), { fetcher } = {}) {
     const res = await sendPush(env, sub, await buildPayload(env, item, s.round, date, nowMs), { fetcher });
     if (res.gone) { await env.CUMBRE.delete('push:sub'); out.gone = true; }
     else if (res.ok) { asks[s.id] = { round: s.round, at: nowMs, answered: null }; out.sent = { id: s.id, round: s.round }; dirty = true; }
+    else { out.error = res.status; }
+  }
+  // Lunes por la noche: una sola vez pregunta qué tareas hay esta semana (si el plan aún está vacío).
+  if (!out.sent && planDue({ wd, secs, asks, plan })) {
+    const res = await sendPush(env, sub, planPayload(date), { fetcher });
+    if (res.gone) { await env.CUMBRE.delete('push:sub'); out.gone = true; }
+    else if (res.ok) { asks._plan = { at: nowMs }; out.sent = { id: '_plan', round: 0 }; dirty = true; }
     else { out.error = res.status; }
   }
   if (dirty) await putAsks(env, date, asks);

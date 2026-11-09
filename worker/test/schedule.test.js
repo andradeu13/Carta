@@ -56,3 +56,16 @@ test('«No» → reintento a los 30 min; segundo «No» o sin respuesta → no c
   assert.deepEqual(nextActions({ items, asks: r1s, nowSecs: T('08:20'), nowMs: t0 + 2 * RETRY_MS + 1 }).miss, ['med']);
   assert.equal(nextActions({ items, asks: { med: { round: 1, at: t0, final: true, missed: true } }, nowSecs: T('09:00'), nowMs: t0 + 4 * RETRY_MS }).miss.length, 0, 'ya final: no vuelve');
 });
+
+import { planDue, planPayload } from '../src/schedule.js';
+test('lunes por la noche pide las tareas de la semana, una sola vez y solo si el plan está vacío', () => {
+  const ok = { wd: 0, secs: T('20:30'), asks: {}, plan: null };
+  assert.equal(planDue(ok), true);
+  assert.equal(planDue({ ...ok, secs: T('19:59') }), false, 'antes de las 20:00 no');
+  assert.equal(planDue({ ...ok, secs: T('22:01') }), false, 'después de las 22:00 no');
+  assert.equal(planDue({ ...ok, wd: 1 }), false, 'solo los lunes');
+  assert.equal(planDue({ ...ok, asks: { _plan: { at: 1 } } }), false, 'una sola vez');
+  assert.equal(planDue({ ...ok, plan: { tasks: [{ id: 'a' }] } }), false, 'si ya hay tareas, no molesta');
+  assert.equal(planDue({ ...ok, plan: { tasks: [] } }), true);
+  assert.equal(planPayload('2026-11-09').data.url, '/?plan=1');
+});
