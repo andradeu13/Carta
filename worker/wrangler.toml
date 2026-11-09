@@ -3,15 +3,11 @@ name = "cumbre"
 main = "src/index.js"
 compatibility_date = "2026-10-01"
 
-[assets]
-directory = "../app"
-binding = "ASSETS"
-# Solo /api/* pasa por el Worker; todo lo demás lo sirve Cloudflare directamente desde los archivos estáticos.
-run_worker_first = ["/api/*"]
+# La app (../app) va empaquetada dentro de la Worker (src/static.js, generado por `npm run build`).
 
 [[kv_namespaces]]
 binding = "CUMBRE"
-id = "REEMPLAZA_CON_EL_ID_QUE_DEVUELVE_wrangler_kv_namespace_create"
+id = "249549bba6544864981046fdeaabd1ef"
 
 [triggers]
 crons = ["* * * * *"]
@@ -19,6 +15,6 @@ crons = ["* * * * *"]
 [vars]
 TZ = "America/Guayaquil"
 # Pega aquí la clave pública que imprime `npm run vapid` y la dirección de tu sitio (NO tu correo).
-VAPID_PUBLIC_KEY = ""
-VAPID_SUBJECT = "https://cumbre.TU-SUBDOMINIO.workers.dev"
+VAPID_PUBLIC_KEY = "BEtE3YiAGEy69sMgor3ELexqWYC2VK8Q0CfcYym5ZrJTOKZOp-z5Jxft3lqNJRvS1mbKjbq-x3ARio-cCluvP2I"
+VAPID_SUBJECT = "https://cumbre.isaiandrade7-ea.workers.dev"
 # Secretos (no van aquí): VAPID_PRIVATE_KEY, APP_TOKEN, SIGN_SECRET → `wrangler secret put <NOMBRE>`

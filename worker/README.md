@@ -19,7 +19,7 @@ npm run vapid
 #    · cambia VAPID_SUBJECT por la dirección de tu sitio (https://…workers.dev), no por tu correo
 
 # 3) Publica
-npx wrangler deploy
+npm run deploy
 ```
 
 4. Abre la dirección que imprime `deploy`. En **Ajustes** escribe tu código de acceso (`APP_TOKEN`) y pulsa **Guardar código**: la app empieza a sincronizar.
