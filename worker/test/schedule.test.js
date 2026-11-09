@@ -17,17 +17,19 @@ test('la lista del día trae los hábitos y solo las tareas de hoy, ordenados po
   const items = askList({ content, day: { habits: { med: true } }, plan, wd: 5 });
   assert.ok(items.find(i => i.id === 'med').done);
   assert.ok(items.find(i => i.id === 't1') && !items.find(i => i.id === 't2'));
-  assert.equal(items.find(i => i.id === 't1').askSecs, T('22:00'));
+  assert.equal(items.find(i => i.id === 't1').askSecs, T('20:20'), 'la tarea de 20 min empieza a las 20:00 y se pregunta al terminar');
+  assert.equal(items.find(i => i.id === 't1__s').askSecs, T('20:00'), 'y se pregunta al empezar');
   assert.deepEqual(items.map(i => i.askSecs), items.map(i => i.askSecs).sort((a, b) => a - b));
 });
 
 test('pregunta una vez, y a lo más una por minuto', () => {
   const items = askList({ content, day: {}, plan: null, wd: 5 });
-  const a = nextActions({ items, asks: {}, ...at('07:15') });
-  assert.deepEqual(a.send, [{ id: 'prior', round: 0 }], 'primero lo que toca antes (06:50)');
-  const b = nextActions({ items, asks: { prior: { round: 0, at: at('07:15').nowMs, answered: null } }, ...at('07:16') });
-  assert.deepEqual(b.send, [{ id: 'med', round: 0 }], 'al minuto siguiente, la siguiente');
-  assert.ok(!nextActions({ items, asks: { prior: { round: 0, at: at('07:15').nowMs, answered: null } }, ...at('07:16') }).send.some(s => s.id === 'prior'), 'no repite la misma pregunta');
+  const a = nextActions({ items, asks: {}, ...at('06:46') });
+  assert.deepEqual(a.send, [{ id: 'prior__s', round: 0 }], 'primero lo que toca antes (06:45, inicio de prioridades)');
+  const asked = { prior__s: { round: 0, at: at('06:46').nowMs, answered: null } };
+  const b = nextActions({ items, asks: asked, ...at('06:56') });
+  assert.deepEqual(b.send, [{ id: 'prior', round: 0 }], 'al minuto siguiente, la siguiente');
+  assert.ok(!b.send.some(s => s.id === 'prior__s'), 'no repite la misma pregunta');
   const c = nextActions({ items, asks: {}, ...at('22:30') });
   assert.equal(c.send.length, 1, 'aunque haya varias pendientes, una por minuto');
 });
@@ -68,4 +70,37 @@ test('lunes por la noche pide las tareas de la semana, una sola vez y solo si el
   assert.equal(planDue({ ...ok, plan: { tasks: [{ id: 'a' }] } }), false, 'si ya hay tareas, no molesta');
   assert.equal(planDue({ ...ok, plan: { tasks: [] } }), true);
   assert.equal(planPayload('2026-11-09').data.url, '/?plan=1');
+});
+
+import Agenda from '../../app/agenda.js';
+test('agenda: el trote es de 18:00 a 18:45 y a las 14:00 toca trabajo, no trote', () => {
+  const items = Agenda.build({ content, settings: null, plan: null, wd: 1, cal: [] });
+  assert.equal(Agenda.at(items, T('18:10')).current.id, 'trote');
+  assert.equal(Agenda.at(items, T('18:10')).left, 35 * 60);
+  assert.equal(Agenda.at(items, T('14:00')).current.id, 'work');
+  assert.equal(Agenda.at(items, T('14:00')).next.id, 'trote');
+  assert.equal(Agenda.at(items, T('19:30')).current.id, 'cena');
+  assert.equal(Agenda.at(items, T('20:30')).current.id, 'iguana');
+  assert.equal(Agenda.at(Agenda.build({ content, settings: null, plan: null, wd: 5, cal: [] }), T('14:00')).current, null, 'el sábado no hay trabajo');
+});
+test('agenda: tus horarios, una actividad propia y una reunión del calendario mandan sobre lo demás', () => {
+  const settings = { agenda: { over: { trote: { from: '17:30', to: '18:15' }, cena: { off: true } }, extra: [{ id: 'ingles', t: 'Inglés', from: '21:00', to: '21:30' }] } };
+  const plan = { tasks: [{ id: 'a', title: 'Campaña', day: 2, block: 'pm', mins: 30 }, { id: 'b', title: 'Posts', day: 2, block: 'pm', mins: 20 }] };
+  const cal = [{ title: 'Reunión con cliente', from: T('17:45'), to: T('18:30') }];
+  const items = Agenda.build({ content, settings, plan, wd: 2, cal });
+  assert.equal(Agenda.at(items, T('17:40')).current.id, 'trote');
+  assert.equal(Agenda.at(items, T('17:50')).current.kind, 'cal', 'la reunión manda');
+  assert.ok(!items.find(i => i.id === 'cena'));
+  assert.deepEqual([items.find(i => i.id === 'a').from, items.find(i => i.id === 'b').from], [T('20:00'), T('20:30')], 'tareas una tras otra en la noche');
+  assert.equal(Agenda.at(items, T('20:10')).current.id, 'a', 'la tarea es más específica que el bloque');
+  assert.equal(Agenda.at(items, T('21:10')).current.id, 'ingles');
+});
+test('inicio y fin: la pregunta de inicio no se hace pasada la actividad ni si ya estás en ello', () => {
+  const day = { acts: { trote: { st: 'on' } } };
+  const items = askList({ content, day, plan: null, wd: 1 });
+  assert.ok(items.find(i => i.id === 'trote__s').done && !items.find(i => i.id === 'trote').done);
+  const fresh = askList({ content, day: {}, plan: null, wd: 1 });
+  assert.deepEqual(nextActions({ items: fresh, asks: {}, nowSecs: T('18:05'), nowMs: 1e12 }).send.map(s => s.id), ['trote__s']);
+  const late = nextActions({ items: fresh.filter(i => i.id === 'trote__s'), asks: {}, nowSecs: T('18:50'), nowMs: 1e12 });
+  assert.equal(late.send.length, 0, 'terminó: ya no preguntes «¿empezaste?»');
 });

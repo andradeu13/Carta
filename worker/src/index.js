@@ -5,7 +5,7 @@ const withAssets = env => (env.ASSETS ? env : Object.assign({}, env, { ASSETS: {
 
 export default {
   async fetch(request, env, ctx) {
-    if (new URL(request.url).pathname.startsWith('/api/')) return handle(request, env, ctx);
+    if (new URL(request.url).pathname.startsWith('/api/')) return handle(request, withAssets(env), ctx);
     return withAssets(env).ASSETS.fetch(request);
   },
   async scheduled(event, env, ctx) {

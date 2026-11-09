@@ -1,5 +1,5 @@
-const CACHE = 'cumbre-v5';
-const ASSETS = ['./', 'index.html', 'styles.css', 'app.js', 'store.js', 'learn.js', 'push.js', 'intake.js', 'pizarra.html', 'manifest.webmanifest', 'ds/tokens.css', 'ds/components.css', 'data/content.json', 'icon.svg', 'icon-192.png', 'icon-512.png'];
+const CACHE = 'cumbre-v6';
+const ASSETS = ['./', 'index.html', 'styles.css', 'app.js', 'store.js', 'learn.js', 'push.js', 'intake.js', 'agenda.js', 'pizarra.html', 'manifest.webmanifest', 'ds/tokens.css', 'ds/components.css', 'data/content.json', 'icon.svg', 'icon-192.png', 'icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
 });
@@ -37,7 +37,7 @@ async function reply(n, answer) {
   try {
     const r = await fetch(new URL(d.answer, self.registration.scope).href, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const j = await r.json();
-    msg = j.ok ? (answer === 'yes' ? `Anotado: +${j.xp || 0} XP` : (j.retry ? 'Anotado. Te vuelvo a preguntar en 30 minutos.' : 'Anotado como no cumplido.')) : 'Esa pregunta ya estaba respondida.';
+    msg = j.ok ? (answer === 'yes' ? (j.phase === 'start' ? 'Anotado: ¡a darle!' : `Anotado: +${j.xp || 0} XP`) : (j.retry ? 'Anotado. Te vuelvo a preguntar en 30 minutos.' : 'Anotado como no cumplido.')) : 'Esa pregunta ya estaba respondida.';
   } catch (x) { /* sin red: se queda el mensaje por defecto */ }
   await self.registration.showNotification('Cumbre', { body: msg, tag: n.tag + '-r', icon: 'icon-192.png', silent: true });
   setTimeout(async () => { (await self.registration.getNotifications({ tag: n.tag + '-r' })).forEach(x => x.close()); }, 5000);

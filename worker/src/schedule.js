@@ -4,6 +4,8 @@ export const MAX_AGE_S = 3 * 3600;          // no se pregunta lo que quedó más
 export const MAX_PER_DAY = 14;
 const QUIET_FROM = 6 * 3600 + 30 * 60, QUIET_TO = 23 * 3600 + 30 * 60;
 
+import Agenda from '../../app/agenda.js';
+
 export const toSecs = hm => { const [h, m] = hm.split(':').map(Number); return h * 3600 + m * 60; };
 
 /* Fecha, segundos desde medianoche y día de la semana (lunes = 0) en la zona horaria `tz`. */
@@ -20,21 +22,22 @@ export function mondayOf(date) {
   return d.toISOString().slice(0, 10);
 }
 
-/* Misiones del día que se preguntan: los hábitos con hora `ask` y las tareas del plan (al cerrar su bloque). */
-export function askList({ content, day, plan, wd }) {
+/* Actividades del día que se preguntan. Cada una tiene dos preguntas: al empezar («¿Ya empezaste?», id `<id>__s`)
+   y al terminar («¿Lo cumpliste?», id `<id>`). La agenda sale de `Agenda.build` (horario base + ajustes + plan + calendario). */
+export const START = '__s';
+export function askList({ content, day, plan, wd, settings, cal }) {
   const items = [];
-  const doneH = (day && day.habits) || {};
-  for (const h of content.habits) {
-    if (!h.ask) continue;
-    items.push({ id: h.id, kind: 'habit', title: h.t, askSecs: toSecs(h.ask), xp: h.xp, done: !!doneH[h.id] });
+  const habits = (day && day.habits) || {}, acts = (day && day.acts) || {}, missed = (day && day.missed) || {};
+  for (const a of Agenda.build({ content, settings, plan, wd, cal })) {
+    if (!a.ask) continue;
+    const task = a.taskId && ((plan && plan.tasks) || []).find(t => t.id === a.taskId);
+    const done = !!(a.habit ? habits[a.habit] : task ? task.done : (acts[a.id] && acts[a.id].st === 'done'));
+    const gone = done || !!missed[a.id] || !!(acts[a.id] && acts[a.id].st === 'missed');
+    const base = { kind: a.habit ? 'habit' : a.taskId ? 'task' : 'custom', title: a.t, from: a.from, to: a.to, xp: a.xp };
+    items.push({ ...base, id: a.id + START, base: a.id, phase: 'start', askSecs: a.from, until: a.to, done: gone || !!(acts[a.id] && acts[a.id].st === 'on') });
+    items.push({ ...base, id: a.id, base: a.id, phase: 'end', askSecs: a.to, done: gone });
   }
-  const block = id => content.blocks.find(b => b.id === id);
-  for (const t of (plan && plan.tasks) || []) {
-    if (t.day !== wd) continue;
-    const b = block(t.block === 'pm' ? 'noche' : 'manana');
-    items.push({ id: t.id, kind: 'task', title: t.title, askSecs: toSecs(b.ask), xp: 20 + Math.round((t.mins || 0) / 5), mins: t.mins || 0, done: !!t.done });
-  }
-  return items.sort((a, b) => a.askSecs - b.askSecs);
+  return items.sort((x, y) => x.askSecs - y.askSecs);
 }
 
 /* Decide, para este minuto, qué preguntar (como mucho una) y qué dar por no cumplido. */
@@ -46,11 +49,13 @@ export function nextActions({ items, asks, nowMs, nowSecs }) {
     if (it.done) continue;
     const a = asks[it.id];
     if (a && (a.final || a.done)) continue;
+    const late = it.until !== undefined && nowSecs > it.until;     // la pregunta de inicio ya no tiene sentido pasada la actividad
     if (!a) {
-      if (nowSecs >= it.askSecs && nowSecs - it.askSecs <= MAX_AGE_S) send.push({ id: it.id, round: 0 });
+      if (!late && nowSecs >= it.askSecs && nowSecs - it.askSecs <= MAX_AGE_S) send.push({ id: it.id, round: 0 });
     } else if (a.round === 0) {
       const due = a.answered === 'no' ? a.retryAt : a.at + RETRY_MS;
-      if (nowMs >= due) send.push({ id: it.id, round: 1 });
+      if (late) miss.push(it.id);
+      else if (nowMs >= due) send.push({ id: it.id, round: 1 });
     } else if (a.round === 1) {
       if (a.answered === 'no' || (!a.answered && nowMs >= a.at + RETRY_MS)) miss.push(it.id);
     }

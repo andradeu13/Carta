@@ -238,3 +238,20 @@ details.tgt summary { font-weight: 700; cursor: pointer; min-height: 44px; displ
 .irow { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.2fr) 56px 36px; }
 .irow .x { min-width: 0; min-height: 0; padding: 6px; }
 .irow select, .irow input { padding-left: 8px; padding-right: 6px; }
+
+/* Banner dirigido por la agenda */
+.bn__kicker { margin: 0 0 var(--space-1); font-size: 13px; font-weight: 700; opacity: .85; }
+.bn__timer { margin: var(--space-2) 0 0; font-family: var(--font-display); font-weight: 800; font-size: 20px; font-variant-numeric: tabular-nums; }
+.bn__bar { height: 6px; margin: var(--space-2) 0; border-radius: var(--radius-pill); background: rgba(0, 0, 0, .15); overflow: hidden; }
+.bn__bar i { display: block; height: 100%; background: currentColor; opacity: .7; transition: width 1s linear; }
+.bn .cb-banner { margin-bottom: var(--space-2); }
+.bn__acts { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0 0 var(--space-4); align-items: center; }
+.bn__acts .cb-btn { flex: 1 1 auto; width: auto; }
+.bn__chip { display: inline-block; padding: 6px var(--space-3); border-radius: var(--radius-pill); background: var(--surface-sunken); color: var(--ink); font-size: 13px; font-weight: 800; }
+.bn__chip--ok { background: var(--green-strong); color: var(--surface-raised); }
+.cb-banner__text { max-width: 62%; }
+.arow { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px; align-items: center; padding: 6px 0; }
+.arow.is-off { opacity: .5; }
+.arow input[type=time] { width: 104px; }
+.arow .x { min-width: 36px; min-height: 36px; padding: 4px; }
+.arow:has(.x) { grid-template-columns: minmax(0, 1fr) auto auto 36px; }

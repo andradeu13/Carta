@@ -1,7 +1,9 @@
 /* Cron de cada minuto: pregunta «¿Lo hiciste?» por push y da por no cumplido lo que no se hizo. */
 import { getDoc, getAsks, putAsks, getSub } from './kv.js';
 import { getContent } from './content.js';
-import { askList, nextActions, localParts, mondayOf, planDue, planPayload } from './schedule.js';
+import { askList, nextActions, localParts, mondayOf, planDue, planPayload, START } from './schedule.js';
+import { calEvents } from './calendar.js';
+import Agenda from '../../app/agenda.js';
 import { signAnswer } from './auth.js';
 import { sendPush } from './push.js';
 import { markMissed } from './answer.js';
@@ -10,25 +12,31 @@ export async function buildPayload(env, item, round, date, nowMs) {
   const exp = nowMs + 12 * 3600 * 1000;
   const [sy, sn] = await Promise.all([signAnswer(env, date, item.id, round, exp, 'yes'), signAnswer(env, date, item.id, round, exp, 'no')]);
   const q = new URLSearchParams({ ask: item.id, d: date, r: String(round), e: String(exp), sy, sn });
+  const hh = `${Agenda.hhmm(item.from)}–${Agenda.hhmm(item.to)}`;
+  const start = item.phase === 'start';
   return {
-    title: round === 0 ? '¿Lo hiciste?' : 'Última pregunta',
-    body: round === 0 ? item.title : `${item.title} · ¿ya lo hiciste?`,
+    title: start ? (round === 0 ? `¿Ya empezaste ${item.title}?` : `${item.title}: ¿estás en ello?`) : (round === 0 ? '¿Lo cumpliste?' : 'Última pregunta'),
+    body: start ? `${hh} · ${item.title}` : (round === 0 ? `${item.title} (${hh})` : `${item.title} · ¿ya lo hiciste?`),
     tag: `ask-${date}-${item.id}`,
-    actions: [{ action: 'yes', title: 'Sí, lo hice' }, { action: 'no', title: round === 0 ? 'No' : 'No pude' }],
+    actions: start ? [{ action: 'yes', title: 'Sí, estoy en ello' }, { action: 'no', title: round === 0 ? 'No' : 'No lo haré' }] : [{ action: 'yes', title: 'Sí, lo cumplí' }, { action: 'no', title: round === 0 ? 'No' : 'No pude' }],
     data: { date, id: item.id, round, exp, sy, sn, answer: '/api/answer', url: `/?${q}` }
   };
 }
 
-export async function tick(env, nowMs = Date.now(), { fetcher } = {}) {
+export async function tick(env, nowMs = Date.now(), { fetcher, calFetcher } = {}) {
   const sub = await getSub(env);
   if (!sub) return { skipped: 'sin suscripción' };
   const { date, secs, wd } = localParts(nowMs, env.TZ || 'America/Guayaquil');
-  const [content, day, plan, asks] = await Promise.all([getContent(env, nowMs), getDoc(env, `days/${date}`), getDoc(env, `plans/${mondayOf(date)}`), getAsks(env, date)]);
-  const items = askList({ content, day, plan, wd });
+  const [content, day, plan, asks, meta, cal] = await Promise.all([getContent(env, nowMs), getDoc(env, `days/${date}`), getDoc(env, `plans/${mondayOf(date)}`), getAsks(env, date), getDoc(env, 'meta/main'), calEvents(env, date, nowMs, { fetcher: calFetcher })]);
+  const items = askList({ content, day, plan, wd, settings: meta && meta.settings, cal: cal.events });
   const { send, miss } = nextActions({ items, asks, nowMs, nowSecs: secs });
   const out = { sent: null, missed: [] };
   let dirty = false;
-  for (const id of miss) { asks[id].final = true; asks[id].missed = true; await markMissed(env, date, id, nowMs); out.missed.push(id); dirty = true; }
+  for (const id of miss) {
+    asks[id].final = true; dirty = true;
+    if (id.endsWith(START)) { if (asks[id].answered === 'no') { asks[id].missed = true; await markMissed(env, date, id.slice(0, -START.length), nowMs); out.missed.push(id); } continue; }   // sin respuesta al inicio: solo se deja de insistir
+    asks[id].missed = true; await markMissed(env, date, id, nowMs); out.missed.push(id);
+  }
   if (send.length) {
     const s = send[0], item = items.find(x => x.id === s.id);
     const res = await sendPush(env, sub, await buildPayload(env, item, s.round, date, nowMs), { fetcher });

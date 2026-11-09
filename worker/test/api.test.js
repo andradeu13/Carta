@@ -48,20 +48,71 @@ test('documentos: guardar, listar por sello y rechazar escrituras viejas con 409
   assert.equal((await sj(await call(env, 'PUT', '/api/doc/days/2026-11-07', { mood: 2, u: 3000 }))).ok, true);
 });
 
-test('el cron pregunta por push cifrado y «Sí» marca la misión con sus XP', async () => {
+test('el cron pregunta al empezar y al terminar; «Sí, estoy en ello» y luego «Sí» marcan la misión con sus XP', async () => {
   const { env, run, answer } = await setup();
-  assert.equal((await run(at('06:49'))).p, null, 'antes de la hora no pregunta');
-  const { out, p } = await run(at('06:50'));
+  assert.equal((await run(at('06:44'))).p, null, 'antes de la hora no pregunta');
+  const s0 = await run(at('06:45'));
+  assert.deepEqual(s0.out.sent, { id: 'prior__s', round: 0 });
+  assert.match(s0.p.title, /¿Ya empezaste/); assert.match(s0.p.body, /06:45–06:55/);
+  assert.deepEqual(s0.p.actions.map(a => a.title), ['Sí, estoy en ello', 'No']);
+  const on = await answer(s0.p, 'yes');
+  assert.equal(on.ok, true); assert.equal(on.phase, 'start'); assert.equal(on.xp, 0);
+  assert.equal((await getDoc(env, `days/${DATE}`)).acts.prior.st, 'on');
+  const { out, p } = await run(at('06:55'));
   assert.deepEqual(out.sent, { id: 'prior', round: 0 });
-  assert.equal(p.title, '¿Lo hiciste?'); assert.match(p.body, /prioridades/i);
+  assert.equal(p.title, '¿Lo cumpliste?'); assert.match(p.body, /prioridades/i);
   assert.deepEqual(p.actions.map(a => a.action), ['yes', 'no']);
   const r = await answer(p, 'yes');
   assert.equal(r.ok, true); assert.equal(r.xp, 10);
   const day = await getDoc(env, `days/${DATE}`);
-  assert.equal(day.habits.prior, true); assert.equal(day.xp, 10); assert.ok(day.times.prior > 0 && day.times.prior < 24); assert.ok(day.u);
+  assert.equal(day.habits.prior, true); assert.equal(day.acts.prior.st, 'done'); assert.equal(day.xp, 10); assert.ok(day.times.prior > 0 && day.times.prior < 24); assert.ok(day.u);
   assert.equal((await getDoc(env, 'meta/main')).xp, 10);
   assert.equal((await answer(p, 'yes')).reason, 'stale', 'una respuesta no se puede repetir');
-  { const n = (await run(at('06:51'))).out.sent; assert.ok(!n || n.id !== 'prior', 'ya hecha: no vuelve a preguntar'); }
+  { const n = (await run(at('06:56'))).out.sent; assert.ok(!n || n.id !== 'prior', 'ya hecha: no vuelve a preguntar'); }
+});
+
+test('la agenda usa tus horarios y tu calendario: una reunión se pregunta al terminar solo si la agregaste como actividad propia', async () => {
+  const { env, run, answer } = await setup();
+  await putDoc(env, 'meta/main', { xp: 0, settings: { agenda: { over: { trote: { from: '17:00', to: '17:30' } }, extra: [{ id: 'ingles', t: 'Inglés', from: '16:45', to: '17:10' }] } } }, 1);
+  const a = await run(at('17:00'));
+  assert.equal(a.out.sent.id, 'ingles__s', 'lo que empezó antes se pregunta primero (16:45)');
+  await answer(a.p, 'yes');
+  const b = await run(at('17:01'));
+  assert.equal(b.out.sent.id, 'trote__s', 'trote ahora empieza a las 17:00');
+  const c = await run(at('17:11'));
+  assert.equal(c.out.sent.id, 'ingles'); assert.match(c.p.body, /16:45–17:10/);
+  const r = await answer(c.p, 'yes');
+  assert.equal(r.xp, 10);
+  assert.equal((await getDoc(env, `days/${DATE}`)).acts.ingles.st, 'done');
+});
+
+test('«No» al empezar → reintento a los 30 min; segundo «No» = no la haré hoy y no se vuelve a preguntar', async () => {
+  const { env, run, answer } = await setup();
+  const a = await run(at('06:45'));
+  assert.deepEqual(await answer(a.p, 'no').then(r => ({ ok: r.ok, retry: r.retry, phase: r.phase })), { ok: true, retry: true, phase: 'start' });
+  const hab = {}; (await import('./helpers.js')).content.habits.forEach(h => { if (h.id !== 'prior') hab[h.id] = true; });
+  await putDoc(env, `days/${DATE}`, { ...(await getDoc(env, `days/${DATE}`)), habits: hab }, 5);
+  assert.ok(!(await run(at('06:46'))).out.sent, 'aún no pasan 30 min');
+  // pasado el fin de la actividad (06:55) la pregunta de inicio caduca: solo queda la de fin
+  const late = await run(at('06:56') + 0);
+  assert.notEqual(late.out.sent && late.out.sent.id, 'prior__s');
+});
+
+test('calendario: guardar la dirección, leer eventos del día y que falle sin romper nada', async () => {
+  const { env } = await setup();
+  const ics = 'BEGIN:VCALENDAR\nBEGIN:VEVENT\nDTSTART;TZID=America/Guayaquil:20261107T150000\nDTEND;TZID=America/Guayaquil:20261107T160000\nSUMMARY:Reunión\nEND:VEVENT\nEND:VCALENDAR';
+  const calFetcher = async () => new Response(ics, { status: 200 });
+  const get = (u = '/api/calendar?date=2026-11-07') => handle(new Request('https://cumbre.test' + u, { headers: { Authorization: `Bearer ${env.APP_TOKEN}` } }), env, {}, { calFetcher, now: at('12:00') });
+  assert.deepEqual((await sj(await get())).events, [], 'sin calendario configurado');
+  assert.equal((await sj(await call(env, 'PUT', '/api/calendar', { url: 'http://inseguro.com/x.ics' }))).status, 400);
+  assert.equal((await sj(await call(env, 'PUT', '/api/calendar', { url: 'https://localhost/x.ics' }))).status, 400);
+  assert.equal((await sj(await call(env, 'PUT', '/api/calendar', { url: 'webcal://calendar.google.com/calendar/ical/x/private-abc/basic.ics' }))).ok, true);
+  assert.equal(await env.CUMBRE.get('cal:url'), 'https://calendar.google.com/calendar/ical/x/private-abc/basic.ics');
+  const ev = await sj(await get());
+  assert.equal(ev.configured, true); assert.deepEqual(ev.events, [{ title: 'Reunión', from: 54000, to: 57600 }]);
+  assert.equal((await sj(await call(env, 'GET', '/api/calendar', undefined, null))).status, 401, 'exige el código');
+  const docs = await sj(await call(env, 'GET', '/api/docs'));
+  assert.ok(!JSON.stringify(docs).includes('private-abc'), 'la dirección secreta no viaja en los documentos');
 });
 
 test('firmas: manipuladas, cambiadas de sí a no o caducadas se rechazan', async () => {
@@ -79,7 +130,9 @@ test('firmas: manipuladas, cambiadas de sí a no o caducadas se rechazan', async
 
 test('«No» → reintento a los 30 min → otro «No» deja la misión como no cumplida', async () => {
   const { env, run, answer } = await setup();
-  const first = await run(at('07:15') - 25 * 60000);           // 06:50 → prior
+  const acts = {}; (await import('./helpers.js')).content.habits.forEach(h => { acts[h.id] = { st: 'on' }; });
+  await putDoc(env, `days/${DATE}`, { habits: {}, acts, tasksDone: 0, mood: 0 }, 1);   // «ya empecé» todo: aísla las preguntas de fin
+  const first = await run(at('06:55'));                          // fin de prioridades
   await answer(first.p, 'yes');                                  // deja prior hecha para aislar med
   const a = await run(at('07:15'));
   assert.equal(a.out.sent.id, 'med');
@@ -100,7 +153,7 @@ test('«No» → reintento a los 30 min → otro «No» deja la misión como no 
 test('sin respuesta tampoco se insiste para siempre', async () => {
   const { env, run } = await setup();
   const a = await run(at('07:15'));                              // pregunta prior (lo primero)
-  assert.equal(a.out.sent.id, 'prior');
+  assert.equal(a.out.sent.id, 'prior', 'a las 07:15 el inicio de prioridades ya caducó: se pregunta el fin');
   const b = await run(at('07:15') + RETRY_MS + 1000);
   assert.ok(b.out.sent);                                          // reintento de prior o la siguiente
   let last, n = 0;

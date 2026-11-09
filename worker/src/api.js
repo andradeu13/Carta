@@ -3,6 +3,8 @@ import { bearerOk, verifyAnswer } from './auth.js';
 import { DOC_RE, getDoc, putDoc, listDocs, getSub } from './kv.js';
 import { handleAnswer } from './answer.js';
 import { sendPush } from './push.js';
+import { calEvents, validCalUrl, resetCalCache } from './calendar.js';
+import { localParts } from './schedule.js';
 
 const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' } });
 const readJson = async (request, max = 200_000) => {
@@ -11,7 +13,7 @@ const readJson = async (request, max = 200_000) => {
   return JSON.parse(text);
 };
 
-export async function handle(request, env, ctx, { fetcher, now } = {}) {
+export async function handle(request, env, ctx, { fetcher, now, calFetcher } = {}) {
   const nowMs = now === undefined ? Date.now() : now;
   const url = new URL(request.url), path = url.pathname, method = request.method;
   try {
@@ -39,6 +41,20 @@ export async function handle(request, env, ctx, { fetcher, now } = {}) {
       if (cur && cur.u > u) return json({ ok: false, error: 'conflicto', current: cur }, 409);
       await putDoc(env, p, obj, u);
       return json({ ok: true, u });
+    }
+
+    if (path === '/api/calendar') {
+      if (method === 'PUT') {
+        const b = await readJson(request, 2000), u = validCalUrl(b.url);
+        if (!u) return json({ ok: false, error: 'dirección de calendario no válida (usa la dirección secreta iCal, que empieza con https://)' }, 400);
+        await env.CUMBRE.put('cal:url', u); resetCalCache();
+        return json({ ok: true });
+      }
+      if (method === 'DELETE') { await env.CUMBRE.delete('cal:url'); resetCalCache(); return json({ ok: true }); }
+      if (method === 'GET') {
+        const date = /^\d{4}-\d{2}-\d{2}$/.test(url.searchParams.get('date') || '') ? url.searchParams.get('date') : localParts(nowMs, env.TZ || 'America/Guayaquil').date;
+        return json({ date, ...(await calEvents(env, date, nowMs, { fetcher: calFetcher })) });
+      }
     }
 
     if (path === '/api/push/subscribe' && method === 'POST') {

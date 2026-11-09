@@ -123,6 +123,7 @@ function mergeDay(a, b) {
   const out = Object.assign({}, b, a);
   out.habits = Object.assign({}, b.habits, a.habits);
   out.times = Object.assign({}, b.times, a.times);
+  out.acts = Object.assign({}, b.acts); Object.keys(a.acts || {}).forEach(k => { const x = a.acts[k], y = out.acts[k]; if (!y || y.st !== 'done') out.acts[k] = x; });
   const missed = Object.assign({}, b.missed, a.missed); Object.keys(missed).forEach(k => { if (out.habits[k]) delete missed[k]; });
   if (Object.keys(missed).length) out.missed = missed; else delete out.missed;
   ['tasksDone', 'xp', 'sent', 'replies', 'demos', 'sales', 'revenue'].forEach(k => { out[k] = Math.max(a[k] || 0, b[k] || 0); });
@@ -136,7 +137,7 @@ function onConflict(path, cur) {
   return applyRemote(col, key, cur);
 }
 function rec(ds) {
-  if (!S.days[ds]) S.days[ds] = { habits: {}, tasksDone: 0, mood: 0, sent: 0, replies: 0, demos: 0, sales: 0, revenue: 0 };
+  if (!S.days[ds]) S.days[ds] = { habits: {}, acts: {}, tasksDone: 0, mood: 0, sent: 0, replies: 0, demos: 0, sales: 0, revenue: 0 };
   return S.days[ds];
 }
 
@@ -358,6 +359,7 @@ function blockState(b, now) {
 function tickBlocks() {
   if (!C || document.hidden) return;
   const now = tzNow();
+  tickBanner();
   document.querySelectorAll('[data-block]').forEach(el => {
     const b = C.blocks.find(x => x.id === el.dataset.block); if (!b) return;
     const s = blockState(b, now);
@@ -395,9 +397,72 @@ function reminderCard() {
     <span class="remind__body"><span class="remind__when">${whenText(r)}</span><b class="remind__title">${esc(r.title)}</b>${r.important ? '<span class="cb-tag">Importante</span>' : ''}</span>
     ${r.src !== 'g' ? `<button class="remind__check" data-act="rdone" data-id="${esc(r.id)}" aria-label="Marcar como hecho">${ico('check')}</button>` : ''}</div>`;
 }
+/* ---------- agenda del día: el banner sigue lo que te toca ahora ---------- */
+let calEvents = [];
+const agendaItems = () => Agenda.build({ content: C, settings: S.settings, plan: planCurrent(), wd: todayIdx(), cal: calEvents });
+const SKY = { dawn: 'dawn', dusk: 'dusk', night: 'night', summit: 'summit', work: 'summit', meet: 'summit' };
+function actState(it) {
+  const r = rec(todayStr()), a = (r.acts || {})[it.id];
+  const t = it.taskId && planCurrent() && planCurrent().tasks.find(x => x.id === it.taskId);
+  if ((it.habit && r.habits[it.habit]) || (t && t.done) || (a && a.st === 'done')) return 'done';
+  if ((r.missed && r.missed[it.id]) || (a && a.st === 'missed')) return 'missed';
+  if (a && a.st === 'on') return 'on';
+  return 'idle';
+}
+function setAct(it, st) {
+  const r = rec(todayStr()); r.acts = r.acts || {};
+  if (st === 'done') {
+    if (it.habit) setHabit(it.habit, true);
+    else if (it.taskId) setTask(it.taskId, true);
+    else if (actState(it) !== 'done') addXP(it.xp || 10);
+    r.acts[it.id] = { st: 'done', at: hourNow() }; if (r.missed) delete r.missed[it.id];
+  } else if (st === 'missed') {
+    (r.missed = r.missed || {})[it.id] = true; r.acts[it.id] = { st: 'missed' };
+  } else if (st === 'on') { r.acts[it.id] = { st: 'on', at: hourNow() }; if (r.missed) delete r.missed[it.id]; }
+  save(); render();
+}
+const bannerSig = () => {
+  const a = Agenda.at(agendaItems(), tzNow()), c = a.current, n = a.next;
+  return [c && c.id, c && actState(c), !c && n && n.id, c && c.from, c && c.to, calEvents.map(e => e.title + e.from).join(',')].join('|');
+};
 function bannerHtml() {
-  const k = daySlot(), sl = SLOT[k];
-  return `<div class="cb-banner cb-banner--${k}"><div class="cb-banner__text"><h3 class="cb-banner__title">${sl[1]}</h3><p class="cb-banner__sub">${sl[2]}</p></div><div class="cb-banner__art">${art(k)}</div></div>`;
+  const now = tzNow(), items = agendaItems(), a = Agenda.at(items, now), it = a.current || a.next;
+  const sig = bannerSig();
+  if (!it) return `<div class="bn" data-bn-sig="${esc(sig)}"><div class="cb-banner cb-banner--summit"><div class="cb-banner__text"><p class="bn__kicker">Hoy</p><h3 class="cb-banner__title">Día cerrado</h3><p class="cb-banner__sub">No queda nada en tu agenda. Descansa y mañana seguimos.</p></div><div class="cb-banner__art">${art('summit')}</div></div></div>`;
+  const cur = !!a.current, st = cur ? actState(it) : 'idle', hh = `${Agenda.hhmm(it.from)} – ${Agenda.hhmm(it.to)}`;
+  const asks = it.ask && cur;
+  const btn = (v, label, cls) => `<button class="cb-btn cb-btn--sm ${cls || ''}" data-act="actset" data-id="${esc(it.id)}" data-v="${v}">${label}</button>`;
+  let acts = '';
+  if (asks && st === 'idle') acts = btn('on', 'Estoy en ello', 'cb-btn--secondary') + btn('done', 'Cumplí') + btn('missed', 'No cumplí', 'cb-btn--ghost');
+  else if (asks && st === 'on') acts = '<span class="bn__chip">En ello</span>' + btn('done', 'Cumplí') + btn('missed', 'No cumplí', 'cb-btn--ghost');
+  else if (st === 'done') acts = '<span class="bn__chip bn__chip--ok">Cumplida · +' + (it.xp || 0) + ' XP</span>';
+  else if (st === 'missed') acts = '<span class="bn__chip">No cumplida</span>' + btn('done', 'Sí la hice', 'cb-btn--secondary');
+  else if (!cur && it.ask) acts = btn('on', 'Empezar ya', 'cb-btn--secondary');
+  const k = SKY[it.slot] || 'summit';
+  return `<div class="bn" data-bn-sig="${esc(sig)}"><div class="cb-banner cb-banner--${k}"><div class="cb-banner__text"><p class="bn__kicker">${cur ? 'Ahora' : 'Siguiente'} · ${hh}</p>
+    <h3 class="cb-banner__title">${esc(it.t)}</h3>
+    <p class="bn__timer" data-bn="left">${cur ? 'Quedan ' + hms(a.left) : 'Empieza en ' + hms(a.until)}</p>
+    ${cur ? `<div class="bn__bar" aria-hidden="true"><i data-bn="bar" style="width:${a.pct}%"></i></div>` : ''}</div><div class="cb-banner__art">${art(k)}</div></div>
+    ${acts ? `<div class="bn__acts">${acts}</div>` : ''}</div>`;
+}
+function tickBanner() {
+  const el = document.querySelector('[data-bn-sig]'); if (!el) return;
+  if (el.dataset.bnSig !== bannerSig()) { if (!$('#overlay').hidden) return; el.outerHTML = bannerHtml(); return; }
+  const a = Agenda.at(agendaItems(), tzNow());
+  const t = el.querySelector('[data-bn="left"]'), b = el.querySelector('[data-bn="bar"]');
+  const txt = a.current ? 'Quedan ' + hms(a.left) : 'Empieza en ' + hms(a.until);
+  if (t && t.textContent !== txt) t.textContent = txt;
+  if (b) b.style.width = a.pct + '%';
+}
+/* Calendario (iCal de Google): la Worker lo lee y entrega los eventos de hoy. */
+let calTimer = null;
+async function loadCal() {
+  if (Store.mode !== 'api') return;
+  try {
+    const r = await fetch('api/calendar?date=' + todayStr(), { headers: { Authorization: 'Bearer ' + Store.token() } });
+    if (r.ok) { const j = await r.json(); calEvents = j.events || []; S.calConfigured = !!j.configured; tickBanner(); }
+  } catch (e) { /* sin red */ }
+  clearTimeout(calTimer); calTimer = setTimeout(loadCal, 10 * 60 * 1000);
 }
 function moodHtml(r) {
   return `<p class="cap">¿Cómo vienes hoy?</p><div class="cb-moods" role="radiogroup" aria-label="Estado de ánimo" style="justify-content:space-between">${MOODS.map(m => `<button class="cb-mood${r.mood === m.n ? ' is-on' : ''}" role="radio" aria-checked="${r.mood === m.n}" data-act="mood" data-id="${m.n}"><span class="cb-face${MOOD_FACE[m.k]}"></span>${m.t}</button>`).join('')}</div>`;
@@ -771,15 +836,17 @@ function askFromUrl() {
   if (!q.get('ask')) return;
   const p = { i: q.get('ask'), d: q.get('d'), r: q.get('r'), e: q.get('e'), sy: q.get('sy'), sn: q.get('sn') };
   try { history.replaceState(null, '', location.pathname); } catch (e) { /* ignorar */ }
-  const h = C.habits.find(x => x.id === p.i);
+  const start = /__s$/.test(p.i), baseId = p.i.replace(/__s$/, '');
+  const h = C.habits.find(x => x.id === baseId);
   let title = h && h.t;
-  if (!title) [S.plan].concat(Object.values(S.history)).filter(Boolean).forEach(pl => (pl.tasks || []).forEach(t => { if (t.id === p.i) title = t.title; }));
-  openSheet(`<h1>¿Lo hiciste?</h1><p>${esc(title || 'Esta misión')}</p><button class="cb-btn" id="ask-yes">Sí, lo hice</button><button class="cb-btn cb-btn--secondary" id="ask-no">No</button><button class="cb-btn cb-btn--ghost" id="ask-x">Cerrar</button>`);
+  if (!title) { const ag = agendaItems().find(x => x.id === baseId); title = ag && ag.t; }
+  if (!title) [S.plan].concat(Object.values(S.history)).filter(Boolean).forEach(pl => (pl.tasks || []).forEach(t => { if (t.id === baseId) title = t.title; }));
+  openSheet(`<h1>${start ? '¿Ya empezaste?' : '¿Lo cumpliste?'}</h1><p>${esc(title || 'Esta actividad')}</p><button class="cb-btn" id="ask-yes">${start ? 'Sí, estoy en ello' : 'Sí, lo cumplí'}</button><button class="cb-btn cb-btn--secondary" id="ask-no">No</button><button class="cb-btn cb-btn--ghost" id="ask-x">Cerrar</button>`);
   $('#ask-x').onclick = closeSheet;
   const send = async a => {
     closeSheet();
     const j = await Push.answer(p, a);
-    toast(j.ok ? (a === 'yes' ? `Anotado: +${j.xp || 0} XP` : (j.retry ? 'Anotado. Te pregunto de nuevo en 30 min.' : 'Anotado como no cumplido.')) : 'Esa pregunta ya estaba respondida o caducó.');
+    toast(j.ok ? (a === 'yes' ? (j.phase === 'start' ? 'Anotado: ¡a darle!' : `Anotado: +${j.xp || 0} XP`) : (j.retry ? 'Anotado. Te pregunto de nuevo en 30 min.' : 'Anotado como no cumplido.')) : 'Esa pregunta ya estaba respondida o caducó.');
     if (Store.mode === 'api') Store.pull();
   };
   $('#ask-yes').onclick = () => send('yes'); $('#ask-no').onclick = () => send('no');
@@ -808,11 +875,37 @@ function viewIguana() {
   h += C.nichos.map((n, i) => `<div class="card"><b>${esc(n.n)}</b><p>${esc(n.msg)}</p><button class="cb-btn cb-btn--secondary cb-btn--sm" data-act="copy" data-id="${i}">Copiar</button></div>`).join('');
   return h;
 }
+/* ---------- Ajustes: mi agenda ---------- */
+function agendaCard() {
+  const cfg = (S.settings.agenda = S.settings.agenda || {}), over = cfg.over || {}, extra = cfg.extra || [];
+  const row = (b, o) => `<div class="arow${o.off ? ' is-off' : ''}"><label class="chk"><input type="checkbox" data-ag="${esc(b.id)}.on" ${o.off ? '' : 'checked'} aria-label="Activar ${esc(b.t)}"><span>${esc(b.t)}</span></label>
+      <input type="time" data-ag="${esc(b.id)}.from" value="${esc(o.from || b.from)}" aria-label="Inicio de ${esc(b.t)}"><input type="time" data-ag="${esc(b.id)}.to" value="${esc(o.to || b.to)}" aria-label="Fin de ${esc(b.t)}"></div>`;
+  return `<div class="card" id="agcard"><b>Mi agenda</b><p class="mut">El banner de Hoy y los avisos siguen estos horarios. Cámbialos a tu gusto.</p>
+    <div class="stack">${C.agenda.map(b => row(b, over[b.id] || {})).join('')}
+    ${extra.map((x, i) => `<div class="arow"><span class="grow"><b>${esc(x.t)}</b></span><input type="time" data-agx="${i}.from" value="${esc(x.from)}" aria-label="Inicio de ${esc(x.t)}"><input type="time" data-agx="${i}.to" value="${esc(x.to)}" aria-label="Fin de ${esc(x.t)}"><button class="x" data-act="agrm" data-id="${i}" aria-label="Eliminar ${esc(x.t)}">${ico('trash', 'cb-ico--sm')}</button></div>`).join('')}</div>
+    <label for="ag-t">Añadir una actividad</label><input id="ag-t" placeholder="Ej: Clase de inglés" maxlength="60"><div class="row"><div class="grow"><label for="ag-f">Desde</label><input id="ag-f" type="time" value="17:00"></div><div class="grow"><label for="ag-e">Hasta</label><input id="ag-e" type="time" value="17:30"></div></div>
+    <button class="cb-btn cb-btn--secondary" data-act="agadd">Añadir a mi agenda</button><div class="gap"></div><button class="cb-btn cb-btn--ghost" data-act="agreset">Restablecer horarios base</button></div>`;
+}
+function setAgenda(el) {
+  const cfg = (S.settings.agenda = S.settings.agenda || {}); cfg.over = cfg.over || {};
+  if (el.dataset.ag) {
+    const [id, k] = el.dataset.ag.split('.'), o = (cfg.over[id] = cfg.over[id] || {});
+    if (k === 'on') { if (el.checked) delete o.off; else o.off = true; } else if (el.value) o[k] = el.value;
+    if (!Object.keys(o).length) delete cfg.over[id];
+  } else {
+    const [i, k] = el.dataset.agx.split('.'); const x = (cfg.extra || [])[+i]; if (x && el.value) x[k] = el.value;
+  }
+  save(); tickBanner();
+}
 function viewMas() {
   const s = S.settings;
   return `<div class="hd"><button class="cb-iconbtn" data-act="goto" data-id="hoy" aria-label="Volver a Hoy">${ico('back')}</button><h1 class="hd__t">Ajustes</h1></div>
   <div class="card" id="pushcard"><b>Avisos «¿Lo hiciste?»</b><p class="mut" data-push-text>Revisando…</p><div data-push-actions></div>
     <label for="set-token">Código de acceso</label><input type="password" id="set-token" autocomplete="off" placeholder="El APP_TOKEN de tu Worker" value="${esc(Store.token())}"><div class="gap"></div><button class="cb-btn cb-btn--secondary" data-act="savetoken">Guardar código</button></div>
+  ${agendaCard()}
+  <div class="card" id="calcard"><b>Google Calendar</b><p class="mut">Tus reuniones aparecen en el banner de Hoy y en los avisos. En Google Calendar abre <i>Configuración del calendario → Integrar calendario → Dirección secreta en formato iCal</i> y pégala aquí. Solo se lee; no se cambia nada en tu calendario.</p>
+    <p class="mut" data-cal-status>${Store.mode === 'api' ? (S.calConfigured ? `Conectado · ${calEvents.length} ${calEvents.length === 1 ? 'evento' : 'eventos'} hoy` : 'Sin conectar') : 'Disponible en la app desplegada en Cloudflare.'}</p>
+    ${Store.mode === 'api' ? `<input id="set-cal" type="url" inputmode="url" autocomplete="off" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics"><div class="gap"></div><button class="cb-btn cb-btn--secondary" data-act="calsave">Conectar calendario</button>${S.calConfigured ? '<div class="gap"></div><button class="cb-btn cb-btn--ghost" data-act="caldel">Desconectar</button>' : ''}` : ''}</div>
   <div class="card"><b>Tus datos</b><p class="mut" data-store-status>${esc(Store.label())}</p><p class="mut">Tu ánimo, tus misiones, tus planes y lo que aprendo de ti se guardan en la base de datos de este artefacto (cuando está disponible) y siempre en este dispositivo.</p><button class="cb-btn cb-btn--secondary" data-act="relearn">Recalcular lo aprendido</button></div>
   <div class="card"><b>Notificaciones</b><p class="mut">La app puede avisarte mientras está abierta. Para alarmas aunque esté cerrada, descarga el calendario (.ics) y ábrelo en tu celular.</p>
     <button class="cb-btn" data-act="notif">${s.notif ? 'Notificaciones activadas' : 'Activar notificaciones'}</button><div class="gap"></div>
@@ -1028,6 +1121,22 @@ document.addEventListener('click', e => {
     case 'pcancel': case 'rclose': case 'gcancel': closeSheet(); break;
     case 'reminders': openReminders(); break;
     case 'intake': openIntake(); break;
+    case 'actset': { const it = agendaItems().find(x => x.id === id); if (it) setAct(it, el.dataset.v); break; }
+    case 'agadd': {
+      const t = ($('#ag-t').value || '').trim(), f = $('#ag-f').value, e = $('#ag-e').value;
+      if (!t || !f || !e || e <= f) { toast('Pon un nombre y un horario válido'); break; }
+      const cfg = S.settings.agenda = S.settings.agenda || {}; (cfg.extra = cfg.extra || []).push({ id: 'x' + uid(), t, from: f, to: e });
+      save(); render(); toast('Actividad añadida'); break;
+    }
+    case 'agrm': { const cfg = S.settings.agenda || {}; (cfg.extra || []).splice(+id, 1); save(); render(); break; }
+    case 'agreset': S.settings.agenda = {}; save(); render(); toast('Horarios base restablecidos'); break;
+    case 'calsave': {
+      const u = ($('#set-cal').value || '').trim(); if (!u) { toast('Pega la dirección iCal'); break; }
+      fetch('api/calendar', { method: 'PUT', headers: { Authorization: 'Bearer ' + Store.token(), 'Content-Type': 'application/json' }, body: JSON.stringify({ url: u }) })
+        .then(r => r.json()).then(j => { if (!j.ok) { toast(j.error || 'No se pudo conectar'); return; } toast('Calendario conectado'); return loadCal().then(() => render()); }).catch(() => toast('Sin conexión'));
+      break;
+    }
+    case 'caldel': fetch('api/calendar', { method: 'DELETE', headers: { Authorization: 'Bearer ' + Store.token() } }).then(() => { calEvents = []; S.calConfigured = false; render(); toast('Calendario desconectado'); }); break;
     case 'intakesnooze': S.settings.intakeSnooze = todayStr(); save(); render(); break;
     case 'itkmic': toggleMic(); break;
     case 'itkparse': {
@@ -1099,7 +1208,7 @@ document.addEventListener('click', e => {
     case 'closenotice': hideNotice(); break;
     case 'showall': showAll = true; render(); break;
     case 'lever': { const b = document.querySelector(`.cb-routine[data-id="${id}"]`); if (b) b.click(); break; }
-    case 'savetoken': { Store.setToken(($('#set-token').value || '').trim()); toast('Código guardado'); Store.connect(S, applyRemote).then(() => { render(); }); break; }
+    case 'savetoken': { Store.setToken(($('#set-token').value || '').trim()); toast('Código guardado'); Store.connect(S, applyRemote).then(() => { render(); loadCal(); }); break; }
     case 'pushon': Push.enable().then(() => { toast('Avisos activados'); paintPush(); }).catch(e => { toast(e.message); paintPush(); }); break;
     case 'pushoff': Push.disable().then(() => { toast('Avisos desactivados'); paintPush(); }); break;
     case 'pushtest': Push.test().then(() => toast('Prueba enviada')).catch(e => toast(e.message)); break;
@@ -1201,6 +1310,7 @@ document.addEventListener('input', e => {
   if (e.target.id === 'set-redes') { S.settings.redes = +e.target.value || 0; save(); }
 });
 document.addEventListener('change', e => {
+  if (e.target.dataset.ag || e.target.dataset.agx) setAgenda(e.target);
   if (e.target.dataset.gb && ged) setGoalDraft(e.target);
   if (e.target.dataset.rb && red) setRemDraft(e.target);
   if (e.target.dataset.ib && itk && itk.items) { const [i, k] = e.target.dataset.ib.split('.'); const t = itk.items[+i]; if (t) t[k] = (k === 'title' || k === 'block') ? e.target.value : +e.target.value; }
@@ -1222,7 +1332,7 @@ fetch('data/content.json').then(r => r.json()).then(j => {
   };
   Store.onConflict = onConflict;
   askFromUrl();
-  Store.connect(S, applyRemote).then(ok => { if (ok) { save(); } render(); });
+  Store.connect(S, applyRemote).then(ok => { if (ok) { save(); } render(); loadCal(); });
   if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', ev => {
     if (!ev.data) return;
     if (ev.data.type === 'refresh' && Store.mode === 'api') Store.pull();
