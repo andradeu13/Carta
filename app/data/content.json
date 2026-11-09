@@ -655,48 +655,6 @@
       "idea": "Dios te conoce, te valora y te acompaña."
     }
   ],
-  "etapas": [
-    {
-      "n": "Quito (inicio)",
-      "xp": 0,
-      "alt": 2850
-    },
-    {
-      "n": "Parqueadero del Cotopaxi",
-      "xp": 300,
-      "alt": 4600
-    },
-    {
-      "n": "Refugio José Rivas",
-      "xp": 900,
-      "alt": 4864
-    },
-    {
-      "n": "Glaciar del Cotopaxi",
-      "xp": 1700,
-      "alt": 5200
-    },
-    {
-      "n": "Cumbre del Cotopaxi",
-      "xp": 2700,
-      "alt": 5897
-    },
-    {
-      "n": "Refugio Ruales-Oleas-Berge (Cayambe)",
-      "xp": 3400,
-      "alt": 4600
-    },
-    {
-      "n": "Glaciar del Cayambe",
-      "xp": 4300,
-      "alt": 5200
-    },
-    {
-      "n": "Cumbre del Cayambe",
-      "xp": 5500,
-      "alt": 5790
-    }
-  ],
   "niveles": [
     "Caminante",
     "Explorador",
@@ -783,6 +741,112 @@
       "to": "23:30",
       "ico": "bed",
       "ask": "23:00"
+    }
+  ],
+  "areas": [
+    {
+      "id": "trabajo",
+      "t": "Trabajo",
+      "tone": "peach"
+    },
+    {
+      "id": "montana",
+      "t": "Montaña",
+      "tone": "mint"
+    },
+    {
+      "id": "habitos",
+      "t": "Hábitos",
+      "tone": "lilac"
+    },
+    {
+      "id": "viajes",
+      "t": "Viajes",
+      "tone": "sand"
+    },
+    {
+      "id": "personal",
+      "t": "Personal",
+      "tone": "peach"
+    }
+  ],
+  "goalSeeds": [
+    {
+      "title": "Cumbre del Cotopaxi",
+      "area": "montana",
+      "days": 330,
+      "note": "Objetivo del año.",
+      "milestones": [
+        "Entrenar 3 veces por semana durante 3 meses",
+        "Salida de aclimatación a más de 4 000 m",
+        "Reservar guía y refugio",
+        "Cumbre del Cotopaxi (5 897 m)"
+      ]
+    },
+    {
+      "title": "Cumbre del Cayambe",
+      "area": "montana",
+      "days": 365,
+      "note": "Objetivo del año.",
+      "milestones": [
+        "Curso básico de nieve y hielo",
+        "Segunda salida de aclimatación",
+        "Reservar guía y refugio",
+        "Cumbre del Cayambe (5 790 m)"
+      ]
+    },
+    {
+      "title": "Primeras ventas de Iguana",
+      "area": "trabajo",
+      "days": 90,
+      "note": "Meta de 90 días.",
+      "milestones": [
+        "Definir oferta y cliente ideal por nicho",
+        "Enviar 100 mensajes de prospección",
+        "Agendar 10 demos",
+        "Cerrar la primera venta"
+      ],
+      "target": {
+        "label": "Ingresos del mes",
+        "unit": "US$",
+        "value": 1000,
+        "current": 0
+      }
+    },
+    {
+      "title": "Vivir de Iguana y dejar mi trabajo actual",
+      "area": "trabajo",
+      "days": 365,
+      "note": "Objetivo del año.",
+      "milestones": [
+        "Llegar a US$1000 al mes de forma recurrente",
+        "Ahorrar 3 meses de gastos",
+        "Tener 5 clientes con contrato",
+        "Renunciar"
+      ]
+    },
+    {
+      "title": "Ser más sociable y conversar mejor",
+      "area": "personal",
+      "days": 90,
+      "note": "Meta de 90 días.",
+      "milestones": [
+        "Una conversación nueva por semana",
+        "Compartir el dato del día cada día",
+        "Ir a 2 reuniones o eventos nuevos"
+      ]
+    },
+    {
+      "title": "Salir del país y abrir Iguana afuera",
+      "area": "viajes",
+      "days": 1095,
+      "note": "Meta a 3 años.",
+      "milestones": [
+        "Elegir el primer país destino",
+        "Tener ingresos remotos estables",
+        "Viaje de exploración",
+        "Abrir Iguana afuera"
+      ]
     }
   ]
 }

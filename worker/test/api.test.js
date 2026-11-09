@@ -29,6 +29,7 @@ test('la API exige el token y valida las rutas', async () => {
   assert.equal((await sj(await call(env, 'PUT', '/api/doc/days/2026-11-07', { habits: {} }, null))).status, 401);
   assert.equal((await sj(await call(env, 'PUT', '/api/doc/days/2026-11-07', { habits: {} }, 'otro'))).status, 401);
   assert.equal((await sj(await call(env, 'PUT', '/api/doc/secretos/x', { a: 1 }))).status, 400);
+  for (const col of ['goals', 'reminders']) assert.equal((await sj(await call(env, 'PUT', `/api/doc/${col}/g1`, { title: 'x' }))).ok, true, col + ' se aceptan');
   assert.equal((await sj(await call(env, 'PUT', '/api/doc/days/..%2Fx', { a: 1 }))).status, 400);
   assert.equal((await sj(await call(env, 'PUT', '/api/doc/days/2026-11-07', [1]))).status, 400);
   assert.equal((await sj(await call(env, 'POST', '/api/push/subscribe', { endpoint: 'http://inseguro', keys: { p256dh: 'a', auth: 'b' } }))).status, 400);
@@ -132,4 +133,15 @@ test('una suscripción caducada (410) se borra y el push de prueba responde', as
   assert.equal((await sj(await call(env, 'POST', '/api/push/test', {}))).status, 409, 'sin suscripción');
   assert.equal((await tick(env, at('06:51'), { fetcher: gone })).skipped, 'sin suscripción');
   assert.ok(s);
+});
+
+test('objetivos: una lápida reemplaza al documento y se sincroniza (no reaparece)', async () => {
+  const { env } = await setup();
+  assert.equal((await sj(await call(env, 'PUT', '/api/doc/goals/g1', { id: 'g1', title: 'Cumbre', milestones: [{ id: 'm1', t: 'Reservar', done: false }], u: 1000 }))).ok, true);
+  assert.equal((await sj(await call(env, 'PUT', '/api/doc/goals/g1', { id: 'g1', deleted: true, u: 2000 }))).ok, true);
+  const all = await sj(await call(env, 'GET', '/api/docs'));
+  assert.deepEqual(all.docs['goals/g1'], { id: 'g1', deleted: true, u: 2000 });
+  assert.equal((await sj(await call(env, 'PUT', '/api/doc/goals/g1', { id: 'g1', title: 'viejo', u: 1500 }))).status, 409, 'una copia vieja no revive el objetivo');
+  const since = await sj(await call(env, 'GET', '/api/docs?since=1999'));
+  assert.deepEqual(Object.keys(since.docs), ['goals/g1']);
 });

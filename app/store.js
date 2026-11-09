@@ -2,7 +2,8 @@
  * Siempre guarda una copia en este dispositivo (localStorage). Si la página corre dentro de un artefacto con la
  * capacidad `db`, además guarda cada día, cada plan y lo aprendido como documentos en la base de datos, los
  * recupera al abrir y se mantiene al día con los cambios de otros dispositivos o de Claude.
- * Documentos: days/<fecha> · plans/<lunes> · meta/main · insights/learned · insights/claude */
+ * Documentos: days/<fecha> · plans/<lunes> · goals/<id> · reminders/<id> · meta/main · insights/learned · insights/claude.
+ * Lo que se borra se guarda como lápida ({ deleted: true }) para que no reviva al sincronizar. */
 (function () {
   const LS = 'coach.v1';
   const Store = {
@@ -34,6 +35,8 @@
       Object.keys(S.history).forEach(k => { d['plans/' + k] = S.history[k]; });
       d['meta/main'] = S.meta || (S.meta = {});
       S.meta.xp = S.xp; S.meta.settings = S.settings;
+      Object.keys(S.goals || {}).forEach(k => { d['goals/' + k] = S.goals[k]; });
+      Object.keys(S.reminders || {}).forEach(k => { d['reminders/' + k] = S.reminders[k]; });
       if (S.learned) d['insights/learned'] = S.learned;
       if (S.claude) d['insights/claude'] = S.claude;
       return d;
@@ -149,7 +152,7 @@
       if (!db) { this.setStatus('local'); return false; }
       this.db = db; this.mode = 'db';
       try {
-        for (const col of ['meta', 'days', 'plans', 'insights']) {
+        for (const col of ['meta', 'days', 'plans', 'goals', 'reminders', 'insights']) {
           const snap = await db.collection(col).get();
           snap.docs.forEach(d => { const o = d.data(); if (o) { this.lastBody[col + '/' + d.id] = this.body(o); apply(col, d.id, o); } });
         }
@@ -158,7 +161,7 @@
       this.persist(S);
       this.setStatus(Object.keys(this.queue).length ? 'guardando' : 'sync');
       // cambios que llegan de fuera (otro dispositivo, o Claude escribiendo insights)
-      ['days', 'plans', 'insights', 'meta'].forEach(col => {
+      ['days', 'plans', 'goals', 'reminders', 'insights', 'meta'].forEach(col => {
         try {
           db.collection(col).onSnapshot(snap => {
             snap.docChanges().forEach(ch => {

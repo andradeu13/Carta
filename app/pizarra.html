@@ -61,9 +61,10 @@
   // racha: 28 casillas
   var chain='';for(var i=27;i>=0;i--){var dd=new Date(now);dd.setHours(0,0,0,0);dd.setDate(dd.getDate()-i);var r=S.days[fmt(dd)];var ok=r&&(Object.keys(r.habits||{}).length+(r.tasksDone||0))>=2;chain+='<span class="box '+(ok?'on':'')+'"></span>'}
   h+='<div class="card"><h2>Racha (últimos 28 días)</h2><div class="chain">'+chain+'</div><p style="margin:8px 0 0">XP total: <b>'+(S.xp||0)+'</b></p></div></div>';
-  // montaña
-  var E=[['Quito',0],['Parqueadero Cotopaxi',300],['Refugio José Rivas',900],['Glaciar Cotopaxi',1700],['Cumbre Cotopaxi',2700],['Refugio Cayambe',3400],['Glaciar Cayambe',4300],['Cumbre Cayambe',5500]];
-  h+='<div class="row"><div class="card"><h2>Montaña (marca tu campamento)</h2>'+E.map(function(e){return '<div class="stage"><span class="box '+((S.xp||0)>=e[1]?'on':'')+'"></span>'+e[0]+' <small>· '+e[1]+' XP</small></div>'}).join('')+'</div>';
+  // metas del año
+  var goals=Object.keys(S.goals||{}).map(function(k){return S.goals[k]}).filter(function(g){return g&&!g.deleted}).sort(function(a,b){return String(a.due||'9999').localeCompare(String(b.due||'9999'))}).slice(0,7);
+  var pctG=function(g){if(g.done)return 100;var m=g.milestones||[];if(m.length)return Math.round(100*m.filter(function(x){return x.done}).length/m.length);if(g.target&&+g.target.value>0)return Math.min(100,Math.round(100*(+g.target.current||0)/+g.target.value));return 0};
+  h+='<div class="row"><div class="card"><h2>Metas del año (marca los hitos)</h2>'+(goals.length?goals.map(function(g){var ms=g.milestones||[];return '<div class="stage"><span class="box '+(pctG(g)===100?'on':'')+'"></span><b>'+esc(g.title)+'</b> <small>· '+pctG(g)+'%'+(g.due?' · '+esc(g.due):'')+'</small></div>'+ms.map(function(m){return '<div class="stage" style="margin-left:18px"><span class="box '+(m.done?'on':'')+'"></span>'+esc(m.t)+'</div>'}).join('')}).join(''):'<p>Crea tus metas en la app (pestaña Metas) y vuelve a abrir esta hoja.</p>')+'</div>';
   // Iguana
   var wk={sent:0,replies:0,demos:0,sales:0,revenue:0};
   for(var i2=0;i2<7;i2++){var dd2=new Date(mon);dd2.setDate(dd2.getDate()+i2);var r2=S.days[fmt(dd2)];if(r2)for(var k in wk)wk[k]+=r2[k]||0}

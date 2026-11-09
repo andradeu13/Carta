@@ -1,6 +1,6 @@
 /* Documentos en Workers KV: la clave es `doc:<colección>/<id>` y el sello `u` viaja como metadato,
  * así se puede saber qué cambió sin leer todos los valores. */
-export const DOC_RE = /^(days|plans|meta|insights)\/[A-Za-z0-9_.-]{1,64}$/;
+export const DOC_RE = /^(days|plans|meta|insights|goals|reminders)\/[A-Za-z0-9_.-]{1,64}$/;
 export const docKey = path => `doc:${path}`;
 
 export const getDoc = (env, path) => env.CUMBRE.get(docKey(path), 'json');
