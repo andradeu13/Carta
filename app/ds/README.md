@@ -42,13 +42,19 @@ Cumbre es el sistema visual de un coach de hábitos para el celular: cada día s
 ## Iconografía
 
 - Glifos rellenos con esquinas redondeadas, en rejilla de 24 px (`.cb-ico-*`); se pintan con el color del texto. Sin trazos finos: pesan igual que el texto en negrita.
-- Existen: añadir, check, cerrar, atrás, más, reloj, gota, campana, montaña, loto, luna, sol, libro, chat, celular apagado, cama, casa, diario, usuario, llama, maletín, estrella, compartir, gráfica, cerebro y chispa.
-- **No uses estrellas** para puntos ni para listas: el avance se dice con la racha en días y el nivel (`HeaderStats`). El maletín marca el trabajo de Iguana.
+- Existen: añadir, check, cerrar, atrás, más, reloj, gota, campana, montaña, loto, luna, sol, libro, chat, celular apagado, cama, casa, diario, usuario, llama, maletín, estrella, compartir, gráfica, cerebro, chispa, engranaje, objetivo, lápiz, papelera, calendario y bandera.
+- **No uses estrellas** para puntos ni para listas: el avance se dice con la racha en días y el nivel (`HeaderBar` y su vistazo `StatBadge`). El maletín marca el trabajo de Iguana.
 - Los iconos van en cuadros pastel de 40 px para filas, o sueltos a 18 px dentro de botones y chips. La chispa y el cerebro marcan lo que la app aprendió de la persona.
+
+## Encabezado, recordatorios y metas
+
+- El encabezado de Hoy es una sola fila (`HeaderBar`): **perfil a la izquierda**; **racha, nivel y tuerca a la derecha**, en botones circulares de 44 px con su número en una insignia. Tocar abre el detalle; mantener pulsado muestra un vistazo (`StatBadge`) que se cierra al soltar.
+- Arriba del banner va **un solo recordatorio importante** (`DateReminder`): el día en grande, el mes debajo y la tarea al lado. Primero lo atrasado, luego lo de hoy y lo próximo. No hay tira de días de la semana.
+- Los objetivos del año son de la persona: ella los crea, edita, elimina y añade (`GoalCard`, `ScreenMetas`). Cada uno tiene área, fecha límite y hitos; el avance sale de los hitos. Eliminar siempre pide confirmación dentro de la misma hoja.
 
 ## Avisos y relojes
 
-- El coach habla en un aviso flotante de 2 minutos (`CoachNotice`) que aparece al elegir una carita; no hay tarjeta fija del coach. Cuenta de 2:00 a 0:00 y desaparece sola.
+- El coach habla en un aviso flotante de 2 minutos (`CoachNotice`) que aparece al elegir una carita, debajo de la fila del encabezado; no hay tarjeta fija del coach. Cuenta de 2:00 a 0:00 y desaparece sola.
 - Cada bloque del día muestra su cuenta regresiva en tiempo real (`BlockTimer`): «Quedan 01:23:45», «Empieza en 03:10:05» o «Terminó». Solo el bloque activo se resalta.
 - Los push preguntan «¿Lo hiciste?» con dos botones (`AskPush`): «Sí, lo hice» y «No». Un «No» se repite a los 30 minutos y, si vuelve a ser «No», la misión queda como no cumplida.
 
