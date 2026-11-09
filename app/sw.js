@@ -1,24 +1,19 @@
-const CACHE = 'cumbre-v6';
+const CACHE = 'cumbre-v7';
 const ASSETS = ['./', 'index.html', 'styles.css', 'app.js', 'store.js', 'learn.js', 'push.js', 'intake.js', 'agenda.js', 'pizarra.html', 'manifest.webmanifest', 'ds/tokens.css', 'ds/components.css', 'data/content.json', 'icon.svg', 'icon-192.png', 'icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()).then(() => self.clients.matchAll({ type: 'window' })).then(cs => cs.forEach(c => c.postMessage({ type: 'update', cache: CACHE }))));
 });
+/* Red primero: siempre se ve la última versión publicada; la caché solo sirve sin conexión. */
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   if (new URL(e.request.url).pathname.includes('/api/')) return;   // la API nunca se guarda en caché
-  e.respondWith(caches.match(e.request).then(hit => {
-    const net = fetch(e.request).then(res => {
-      if (res.ok && new URL(e.request.url).origin === location.origin) {
-        const copy = res.clone();
-        caches.open(CACHE).then(c => c.put(e.request, copy));
-      }
-      return res;
-    }).catch(() => hit);
-    return hit || net;
-  }));
+  e.respondWith(fetch(e.request, { cache: 'no-cache' }).then(res => {
+    if (res.ok && new URL(e.request.url).origin === location.origin) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); }
+    return res;
+  }).catch(() => caches.match(e.request).then(hit => hit || caches.match('index.html'))));
 });
 /* Push: «¿Lo hiciste?» con botones Sí / No. Los datos llegan cifrados desde el Worker. */
 self.addEventListener('push', e => {

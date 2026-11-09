@@ -897,6 +897,7 @@ function setAgenda(el) {
   }
   save(); tickBanner();
 }
+const APP_VERSION = '6.1';
 function viewMas() {
   const s = S.settings;
   return `<div class="hd"><button class="cb-iconbtn" data-act="goto" data-id="hoy" aria-label="Volver a Hoy">${ico('back')}</button><h1 class="hd__t">Ajustes</h1></div>
@@ -917,6 +918,7 @@ function viewMas() {
   <div class="card"><b>Respaldo</b><p class="mut">Guarda tu plan y progreso o llévalos a otro dispositivo.</p>
     <button class="cb-btn cb-btn--secondary" data-act="export">Exportar datos</button><div class="gap"></div>
     <label class="cb-btn cb-btn--secondary" style="cursor:pointer">Importar datos<input type="file" id="imp" accept="application/json" hidden></label></div>
+  <p class="mut" style="text-align:center">Cumbre · versión ${APP_VERSION}</p>
   <div class="card"><b>Reiniciar</b><button class="cb-btn cb-btn--danger" data-act="reset">Borrar todo</button></div>`;
 }
 
@@ -1335,6 +1337,7 @@ fetch('data/content.json').then(r => r.json()).then(j => {
   Store.connect(S, applyRemote).then(ok => { if (ok) { save(); } render(); loadCal(); });
   if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', ev => {
     if (!ev.data) return;
+    if (ev.data.type === 'update') { try { if (!sessionStorage.getItem('upd:' + ev.data.cache)) { sessionStorage.setItem('upd:' + ev.data.cache, '1'); if (($('#overlay').hidden) && !document.activeElement.matches('input,textarea,select')) location.reload(); } } catch (e) { /* ignorar */ } }
     if (ev.data.type === 'refresh' && Store.mode === 'api') Store.pull();
     if (ev.data.type === 'open') { try { const u = new URL(ev.data.url); history.replaceState(null, '', u.pathname + u.search); } catch (e) { /* ignorar */ } askFromUrl(); }
   });
