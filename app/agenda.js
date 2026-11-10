@@ -15,11 +15,11 @@
       if (o.off) return;
       if (b.days && !b.days.includes(wd)) return;
       const h = b.habit && (content.habits || []).find(x => x.id === b.habit);
-      add({ id: b.id, t: b.t, from: toSecs(o.from || b.from), to: toSecs(o.to || b.to), kind: b.kind, slot: b.slot || 'dusk', ico: b.ico || (h && h.ico) || 'check', habit: b.habit || null, xp: h ? h.xp : 0, ask: b.kind === 'habit' });
+      add({ id: b.id, t: b.t, from: toSecs(o.from || b.from), to: toSecs(o.to || b.to), kind: b.kind, slot: b.slot || 'dusk', scene: b.scene || 'task', ico: b.ico || (h && h.ico) || 'check', habit: b.habit || null, xp: h ? h.xp : 0, ask: b.kind === 'habit' });
     });
     (cfg.extra || []).forEach(x => {
       if (x.days && !x.days.includes(wd)) return;
-      add({ id: x.id, t: x.t, from: toSecs(x.from), to: toSecs(x.to), kind: 'custom', slot: 'dusk', ico: 'check', habit: null, xp: 10, ask: true, custom: true });
+      add({ id: x.id, t: x.t, from: toSecs(x.from), to: toSecs(x.to), kind: 'custom', slot: 'dusk', scene: 'task', ico: 'check', habit: null, xp: 10, ask: true, custom: true });
     });
     // tareas del plan: una tras otra dentro de su bloque (noche = Iguana, día = mañana temprano)
     const tasks = ((plan && plan.tasks) || []).filter(t => t.day === wd);
@@ -27,11 +27,11 @@
       let at = blk === 'pm' ? toSecs('20:00') : toSecs('05:00');
       tasks.filter(t => (t.block === 'am' ? 'am' : 'pm') === blk).forEach(t => {
         const mins = Math.max(5, t.mins || 30);
-        add({ id: t.id, t: t.title, from: at, to: at + mins * 60, kind: 'task', slot: blk === 'pm' ? 'night' : 'dawn', ico: blk === 'pm' ? 'moon' : 'sun', taskId: t.id, xp: 20 + Math.round(mins / 5), ask: true });
+        add({ id: t.id, t: t.title, from: at, to: at + mins * 60, kind: 'task', slot: blk === 'pm' ? 'night' : 'dawn', scene: blk === 'pm' ? 'iguana' : 'task', ico: blk === 'pm' ? 'moon' : 'sun', taskId: t.id, xp: 20 + Math.round(mins / 5), ask: true });
         at += mins * 60;
       });
     });
-    (cal || []).forEach((e, i) => add({ id: 'cal' + i, t: e.title || 'Evento', from: e.from, to: e.to, kind: 'cal', slot: 'meet', ico: 'calendar', xp: 0, ask: false }));
+    (cal || []).forEach((e, i) => add({ id: 'cal' + i, t: e.title || 'Evento', from: e.from, to: e.to, kind: 'cal', slot: 'meet', scene: 'meet', ico: 'calendar', xp: 0, ask: false }));
     return out.sort((a, b) => a.from - b.from || b.to - a.to);
   }
 

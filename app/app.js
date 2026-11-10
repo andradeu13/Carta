@@ -236,24 +236,6 @@ function closeSheet() { clearInterval(timerRef); $('#overlay').hidden = true; $(
 
 
 /* ---------- ilustraciones del banner (sol, tarde, luna, cumbre) ---------- */
-function art(kind) {
-  let rays = '';
-  for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, c = Math.cos(a), sn = Math.sin(a); rays += `<line x1="${(c * 36).toFixed(1)}" y1="${(sn * 36).toFixed(1)}" x2="${(c * 46).toFixed(1)}" y2="${(sn * 46).toFixed(1)}"/>`; }
-  const cloud = (x, y, d, fill) => `<g class="cb-drift" style="animation-delay:${d}s" fill="${fill}" opacity=".92"><ellipse cx="${x}" cy="${y}" rx="22" ry="8"/><ellipse cx="${x + 17}" cy="${y - 4}" rx="13" ry="8"/></g>`;
-  const bird = (x, y, c) => `<path d="M${x} ${y}q5-6 10 0q5-6 10 0" stroke="${c}" fill="none" stroke-width="2" stroke-linecap="round"/>`;
-  const open = '<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMax slice" aria-hidden="true">';
-  if (kind === 'dawn') return open + cloud(214, 22, 0, 'var(--on-night)') + cloud(284, 52, -3, 'var(--on-night)') + bird(176, 20, 'var(--on-sun)') +
-    `<g transform="translate(236 78)"><g class="cb-spin" stroke="var(--action)" stroke-width="4" stroke-linecap="round">${rays}</g><circle r="28" fill="var(--action)"/><circle cx="-9" cy="-3" r="3" fill="var(--on-action)"/><circle cx="9" cy="-3" r="3" fill="var(--on-action)"/><path d="M-9 8q9 8 18 0" stroke="var(--on-action)" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="-17" cy="6" r="4" fill="var(--pink)" opacity=".8"/><circle cx="17" cy="6" r="4" fill="var(--pink)" opacity=".8"/></g>` +
-    '<path d="M0 150V108Q60 86 120 104T240 100T320 96V150Z" fill="var(--green)"/><path d="M0 150V128Q80 108 160 124T320 118V150Z" fill="var(--green-strong)"/><g fill="var(--green-strong)"><path d="M20 112l9-28 9 28z"/><path d="M42 114l7-20 7 20z"/><path d="M286 104l8-24 8 24z"/></g></svg>';
-  if (kind === 'dusk') return open + cloud(214, 24, 0, 'var(--on-night)') + cloud(286, 60, -4, 'var(--on-night)') + bird(190, 52, 'var(--on-action)') +
-    '<circle class="cb-bob" cx="236" cy="104" r="40" fill="var(--sun)"/><path d="M0 150V112Q70 92 130 108T250 104T320 100V150Z" fill="var(--brown)"/><path d="M0 150V130Q90 112 170 128T320 122V150Z" fill="color-mix(in oklab, var(--brown) 70%, black)"/><g fill="color-mix(in oklab, var(--brown) 70%, black)"><path d="M30 120l9-26 9 26z"/><path d="M52 122l6-18 6 18z"/></g></svg>';
-  if (kind === 'night') {
-    const stars = [[205, 28, 2.2, 0], [300, 20, 1.6, -1], [188, 64, 2, -.5], [236, 92, 1.5, -1.6], [306, 92, 1.4, -.8], [150, 100, 1.4, -2], [24, 104, 1.4, -1.2]].map(s => `<circle class="cb-twinkle" style="animation-delay:${s[3]}s" cx="${s[0]}" cy="${s[1]}" r="${s[2]}" fill="var(--on-night)"/>`).join('');
-    return open + stars + '<g class="cb-bob"><path d="M262 38a30 30 0 1 0 22 52a24 24 0 0 1-22-52z" fill="var(--sun)"/></g><path d="M0 150V116Q70 96 140 112T320 104V150Z" fill="var(--green-strong)" opacity=".55"/><path d="M0 150V132Q100 116 180 130T320 126V150Z" fill="var(--green-strong)" opacity=".8"/></svg>';
-  }
-  return open + '<circle class="cb-bob" cx="296" cy="26" r="15" fill="var(--sun)"/>' + cloud(196, 20, 0, 'var(--on-night)') +
-    '<path d="M90 150L178 64L212 98L262 38L340 150Z" fill="var(--brown)"/><path d="M178 64l-20 20l11-3l9 7l7-7l9 5z" fill="var(--on-night)"/><path d="M262 38l-22 22l13-4l9 8l9-8l11 6z" fill="var(--on-night)"/><path d="M0 150V124Q80 108 160 124T320 118V150Z" fill="var(--green-strong)"/><path d="M262 38v-20" stroke="var(--on-night)" stroke-width="2"/><path d="M262 18l15 6l-15 6z" fill="var(--action)"/></svg>';
-}
 const BELL = '<svg width="84" height="84" viewBox="0 0 84 84" aria-hidden="true"><g class="cb-bell"><path d="M42 12c-12 0-20 9-20 21v16l-6 8h52l-6-8V33c0-12-8-21-20-21z" fill="var(--action)"/><path d="M34 62a8 8 0 0 0 16 0z" fill="var(--action-strong)"/><circle cx="42" cy="10" r="4" fill="var(--action-strong)"/></g><path d="M12 28q-6 10 0 20M72 28q6 10 0 20" stroke="var(--action)" stroke-width="3" fill="none" stroke-linecap="round"/></svg>';
 function daySlot() {
   const q = new URLSearchParams(location.search).get('slot');
@@ -400,7 +382,6 @@ function reminderCard() {
 /* ---------- agenda del día: el banner sigue lo que te toca ahora ---------- */
 let calEvents = [];
 const agendaItems = () => Agenda.build({ content: C, settings: S.settings, plan: planCurrent(), wd: todayIdx(), cal: calEvents });
-const SKY = { dawn: 'dawn', dusk: 'dusk', night: 'night', summit: 'summit', work: 'summit', meet: 'summit' };
 function actState(it) {
   const r = rec(todayStr()), a = (r.acts || {})[it.id];
   const t = it.taskId && planCurrent() && planCurrent().tasks.find(x => x.id === it.taskId);
@@ -428,7 +409,7 @@ const bannerSig = () => {
 function bannerHtml() {
   const now = tzNow(), items = agendaItems(), a = Agenda.at(items, now), it = a.current || a.next;
   const sig = bannerSig();
-  if (!it) return `<div class="bn" data-bn-sig="${esc(sig)}"><div class="cb-banner cb-banner--summit"><div class="cb-banner__text"><p class="bn__kicker">Hoy</p><h3 class="cb-banner__title">Día cerrado</h3><p class="cb-banner__sub">No queda nada en tu agenda. Descansa y mañana seguimos.</p></div><div class="cb-banner__art">${art('summit')}</div></div></div>`;
+  if (!it) return `<div class="bn" data-bn-sig="${esc(sig)}"><div class="cb-banner cb-banner--closed"><div class="cb-banner__text"><p class="bn__kicker">Hoy</p><h3 class="cb-banner__title">Día cerrado</h3><p class="cb-banner__sub">No queda nada en tu agenda. Descansa y mañana seguimos.</p></div><div class="cb-banner__art">${Scenes.svg('closed')}</div></div></div>`;
   const cur = !!a.current, st = cur ? actState(it) : 'idle', hh = `${Agenda.hhmm(it.from)} – ${Agenda.hhmm(it.to)}`;
   const asks = it.ask && cur;
   const btn = (v, label, cls) => `<button class="cb-btn cb-btn--sm ${cls || ''}" data-act="actset" data-id="${esc(it.id)}" data-v="${v}">${label}</button>`;
@@ -438,11 +419,11 @@ function bannerHtml() {
   else if (st === 'done') acts = '<span class="bn__chip bn__chip--ok">Cumplida · +' + (it.xp || 0) + ' XP</span>';
   else if (st === 'missed') acts = '<span class="bn__chip">No cumplida</span>' + btn('done', 'Sí la hice', 'cb-btn--secondary');
   else if (!cur && it.ask) acts = btn('on', 'Empezar ya', 'cb-btn--secondary');
-  const k = SKY[it.slot] || 'summit';
+  const k = it.scene || 'task';
   return `<div class="bn" data-bn-sig="${esc(sig)}"><div class="cb-banner cb-banner--${k}"><div class="cb-banner__text"><p class="bn__kicker">${cur ? 'Ahora' : 'Siguiente'} · ${hh}</p>
     <h3 class="cb-banner__title">${esc(it.t)}</h3>
     <p class="bn__timer" data-bn="left">${cur ? 'Quedan ' + hms(a.left) : 'Empieza en ' + hms(a.until)}</p>
-    ${cur ? `<div class="bn__bar" aria-hidden="true"><i data-bn="bar" style="width:${a.pct}%"></i></div>` : ''}</div><div class="cb-banner__art">${art(k)}</div></div>
+    ${cur ? `<div class="bn__bar" aria-hidden="true"><i data-bn="bar" style="width:${a.pct}%"></i></div>` : ''}</div><div class="cb-banner__art">${Scenes.svg(k)}</div></div>
     ${acts ? `<div class="bn__acts">${acts}</div>` : ''}</div>`;
 }
 function tickBanner() {
@@ -494,7 +475,7 @@ function viewHoy() {
   h += moodHtml(r);
   const lev = leverHabit(r);
   const minimal = !!(S.learned && S.learned.load && S.learned.load.minimal) && !showAll;
-  if (!S.settings.notif) h += `<div class="cb-reminder" style="margin:var(--space-4) 0"><div><h3 class="cb-reminder__title">Activa tus recordatorios</h3><p class="cb-reminder__text">Que no se te pase la rutina de la mañana ni el bloque de Iguana.</p><button class="cb-btn cb-btn--brown cb-btn--sm" data-act="notif">Activar ahora</button></div>${BELL}</div>`;
+  if (!S.settings.notif) h += `<div class="cb-reminder" style="margin:var(--space-4) 0"><div><h3 class="cb-reminder__title">Activa tus recordatorios</h3><p class="cb-reminder__text">Que no se te pase la rutina de la mañana ni el bloque de Iguana.</p><button class="cb-btn cb-btn--violet cb-btn--sm" data-act="notif">Activar ahora</button></div>${BELL}</div>`;
   if (!p) h += `<div class="card"><b>Aún no tienes plan esta semana</b><p class="mut">Tarda 15 minutos y define tus tareas.</p><button class="cb-btn" data-act="wiz">Planificar mi semana</button></div>`;
   h += `<div class="card"><div class="row" style="gap:8px"><b>${ico('chat', 'cb-ico--sm')} Para conversar hoy</b></div><p>${esc(dato.t)}</p><p><i>«${esc(dato.q)}»</i></p></div>`;
   h += `<div class="sec-h"><h2>Diario rápido</h2></div><div class="cb-jrow">${JOURNAL.map((j, i) => `<button class="cb-jcard${j.tone}" data-act="jr" data-id="${i}"><span><span class="cb-jcard__title">${j.t}</span><span class="cb-jcard__text">${notes[j.id] ? esc(notes[j.id]).slice(0, 60) : j.q}</span></span><span class="cb-jcard__foot">${notes[j.id] ? 'Guardado' : 'Hoy'}<span class="cb-tag">${j.tag}</span></span></button>`).join('')}</div>`;
@@ -750,10 +731,10 @@ function rangeDays(n) { const out = []; for (let i = n - 1; i >= 0; i--) out.pus
 function viewProgreso() {
   const days = rangeDays(progRange), st = streakInfo();
   const pct = id => Math.round(100 * days.filter(d => S.days[d] && S.days[d].habits[id]).length / days.length);
-  const habits = [['Sueño', 'sleep', 'brown'], ['Redes', 'redes', 'action'], ['Trote', 'trote', 'green'], ['Calma', 'med', 'pink']];
+  const habits = [['Sueño', 'sleep', 'violet'], ['Redes', 'redes', 'action'], ['Trote', 'trote', 'green'], ['Calma', 'med', 'pink']];
   const moodCount = { 1: 0, 2: 0, 3: 0, 4: 0 }; let moodTotal = 0;
   days.forEach(d => { const m = S.days[d] && S.days[d].mood; if (m) { moodCount[m]++; moodTotal++; } });
-  const moods = [['Feliz', 4, 'sun'], ['Triste', 1, 'brown'], ['Calmado', 3, 'green'], ['Ansioso', 2, 'taupe']];
+  const moods = [['Feliz', 4, 'sun'], ['Triste', 1, 'violet'], ['Calmado', 3, 'green'], ['Ansioso', 2, 'taupe']];
   const xp = days.reduce((a, d) => a + ((S.days[d] || {}).xp || 0), 0);
   const done = days.reduce((a, d) => { const r = S.days[d]; return a + (r ? Object.keys(r.habits).length + (r.tasksDone || 0) : 0); }, 0);
   const bars = (list, solid) => `<div class="cb-caps${solid ? ' cb-caps--solid' : ''}">${list.map(b => `<div class="cb-cap"><div class="cb-cap__track"><div class="cb-cap__fill" style="--v:0;--c:var(--${b[2]});--on-c:var(--on-${b[2]})" data-v="${b[1]}">${b[1]}%</div></div><span class="cb-cap__label">${b[0]}</span></div>`).join('')}</div>`;
@@ -897,7 +878,7 @@ function setAgenda(el) {
   }
   save(); tickBanner();
 }
-const APP_VERSION = '6.1';
+const APP_VERSION = '7.0';
 function viewMas() {
   const s = S.settings;
   return `<div class="hd"><button class="cb-iconbtn" data-act="goto" data-id="hoy" aria-label="Volver a Hoy">${ico('back')}</button><h1 class="hd__t">Ajustes</h1></div>

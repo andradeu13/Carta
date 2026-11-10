@@ -864,7 +864,8 @@
     2,
     3,
     4
-   ]
+   ],
+   "scene": "work"
   },
   {
    "id": "prior",
@@ -873,7 +874,8 @@
    "to": "06:55",
    "kind": "habit",
    "habit": "prior",
-   "slot": "dawn"
+   "slot": "dawn",
+   "scene": "board"
   },
   {
    "id": "med",
@@ -882,7 +884,8 @@
    "to": "07:15",
    "kind": "habit",
    "habit": "med",
-   "slot": "dawn"
+   "slot": "dawn",
+   "scene": "lotus"
   },
   {
    "id": "salmo",
@@ -891,7 +894,8 @@
    "to": "07:30",
    "kind": "habit",
    "habit": "salmo",
-   "slot": "dawn"
+   "slot": "dawn",
+   "scene": "book"
   },
   {
    "id": "trote",
@@ -900,7 +904,8 @@
    "to": "18:45",
    "kind": "habit",
    "habit": "trote",
-   "slot": "dusk"
+   "slot": "dusk",
+   "scene": "run"
   },
   {
    "id": "cena",
@@ -909,7 +914,8 @@
    "to": "20:00",
    "kind": "fixed",
    "slot": "dusk",
-   "ico": "home"
+   "ico": "home",
+   "scene": "family"
   },
   {
    "id": "iguana",
@@ -918,7 +924,8 @@
    "to": "22:00",
    "kind": "block",
    "slot": "night",
-   "ico": "moon"
+   "ico": "moon",
+   "scene": "iguana"
   },
   {
    "id": "redes",
@@ -927,7 +934,8 @@
    "to": "22:10",
    "kind": "habit",
    "habit": "redes",
-   "slot": "summit"
+   "slot": "summit",
+   "scene": "phone"
   },
   {
    "id": "pizarra",
@@ -936,7 +944,8 @@
    "to": "22:20",
    "kind": "habit",
    "habit": "pizarra",
-   "slot": "summit"
+   "slot": "summit",
+   "scene": "board"
   },
   {
    "id": "dato",
@@ -945,7 +954,8 @@
    "to": "22:30",
    "kind": "habit",
    "habit": "dato",
-   "slot": "summit"
+   "slot": "summit",
+   "scene": "chat"
   },
   {
    "id": "sleep",
@@ -955,7 +965,8 @@
    "kind": "habit",
    "habit": "sleep",
    "slot": "summit",
-   "ico": "bed"
+   "ico": "bed",
+   "scene": "bed"
   }
  ]
 }
