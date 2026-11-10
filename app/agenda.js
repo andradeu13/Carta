@@ -21,16 +21,7 @@
       if (x.days && !x.days.includes(wd)) return;
       add({ id: x.id, t: x.t, from: toSecs(x.from), to: toSecs(x.to), kind: 'custom', slot: 'dusk', scene: 'task', ico: 'check', habit: null, xp: 10, ask: true, custom: true });
     });
-    // tareas del plan: una tras otra dentro de su bloque (noche = Iguana, día = mañana temprano)
-    const tasks = ((plan && plan.tasks) || []).filter(t => t.day === wd);
-    ['pm', 'am'].forEach(blk => {
-      let at = blk === 'pm' ? toSecs('20:00') : toSecs('05:00');
-      tasks.filter(t => (t.block === 'am' ? 'am' : 'pm') === blk).forEach(t => {
-        const mins = Math.max(5, t.mins || 30);
-        add({ id: t.id, t: t.title, from: at, to: at + mins * 60, kind: 'task', slot: blk === 'pm' ? 'night' : 'dawn', scene: blk === 'pm' ? 'iguana' : 'task', ico: blk === 'pm' ? 'moon' : 'sun', taskId: t.id, xp: 20 + Math.round(mins / 5), ask: true });
-        at += mins * 60;
-      });
-    });
+    // las tareas del plan no llevan hora: se manejan en el checklist de Hoy (mañana / noche) y en el chequeo de las 16:30
     (cal || []).forEach((e, i) => add({ id: 'cal' + i, t: e.title || 'Evento', from: e.from, to: e.to, kind: 'cal', slot: 'meet', scene: 'meet', ico: 'calendar', xp: 0, ask: false }));
     return out.sort((a, b) => a.from - b.from || b.to - a.to);
   }

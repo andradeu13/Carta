@@ -2,7 +2,7 @@
  "coach": {
   "direct": [
    "Esteban, lo de ayer quedó a medias. Hoy no se negocia: elige la misión más pequeña y empieza ya.",
-   "Iguana no se vende sola. Abre tu bloque de las 20:00 y cumple lo que te prometiste.",
+   "Nada se construye solo. Abre tu bloque de la noche y cumple lo que te prometiste.",
    "Postergar también es una decisión. Elige una misión y dale 10 minutos, ahora.",
    "Las redes no te pagan. Cierra la app, pon el cronómetro y trabaja.",
    "Tu equipo cuenta contigo. Pide cuentas hoy: ¿quién hace qué y para cuándo?"
@@ -15,7 +15,7 @@
   ],
   "socratic": [
    "¿Qué es lo que más te acerca a tus primeras ventas esta semana?",
-   "Si dentro de un año ya vives de Iguana, ¿qué hiciste esta noche?",
+   "Si dentro de un año ya vives de tu proyecto, ¿qué hiciste esta noche?",
    "¿Qué te está frenando de verdad: tiempo, miedo o claridad?",
    "¿Qué haría hoy alguien que ya consiguió US$1000 al mes con su agencia?"
   ],
@@ -26,16 +26,6 @@
   ]
  },
  "habits": [
-  {
-   "id": "prior",
-   "t": "Pizarra: escribe tus 3 prioridades de hoy",
-   "kind": "physical",
-   "xp": 10,
-   "slot": "manana",
-   "ico": "journal",
-   "tone": "lilac",
-   "ask": "06:50"
-  },
   {
    "id": "med",
    "t": "Meditar con tu tip de energía",
@@ -61,7 +51,7 @@
    "t": "Comparte el dato del día en una conversación real",
    "kind": "check",
    "xp": 15,
-   "slot": "tarde",
+   "slot": "noche",
    "ico": "chat",
    "tone": "sand",
    "ask": "21:30"
@@ -72,7 +62,7 @@
    "kind": "timer",
    "secs": 1800,
    "xp": 25,
-   "slot": "tarde",
+   "slot": "noche",
    "ico": "trail",
    "tone": "",
    "ask": "19:30"
@@ -82,7 +72,7 @@
    "t": "Redes dentro de tu límite de hoy",
    "kind": "check",
    "xp": 15,
-   "slot": "cierre",
+   "slot": "noche",
    "ico": "phoneoff",
    "tone": "lilac",
    "ask": "22:00"
@@ -92,132 +82,15 @@
    "t": "Teléfono lejos de la cama y a dormir a tu hora",
    "kind": "check",
    "xp": 15,
-   "slot": "cierre",
+   "slot": "noche",
    "ico": "bed",
    "tone": "sand",
    "ask": "22:45"
-  },
-  {
-   "id": "pizarra",
-   "t": "Pizarra: marca tu racha y mueve tu marcador",
-   "kind": "physical",
-   "xp": 10,
-   "slot": "cierre",
-   "ico": "chart",
-   "tone": "mint",
-   "ask": "22:10"
   }
  ],
- "plantillas": [
-  {
-   "t": "Enviar 5 mensajes a barberías, peluquerías o spas",
-   "mins": 20
-  },
-  {
-   "t": "Crear 1 pieza de contenido (post o reel) para la campaña",
-   "mins": 40
-  },
-  {
-   "t": "Diseñar un anuncio para un nicho (barbería, peluquería o spa)",
-   "mins": 45
-  },
-  {
-   "t": "Dar seguimiento a 3 prospectos que ya respondieron",
-   "mins": 20
-  },
-  {
-   "t": "Revisar métricas de la campaña y ajustar",
-   "mins": 15
-  },
-  {
-   "t": "Redactar la oferta y el mensaje de venta de un nicho",
-   "mins": 30
-  },
-  {
-   "t": "Agendar una demo con 1 negocio",
-   "mins": 20
-  },
-  {
-   "t": "Reunión corta con el equipo: quién, qué y cuándo",
-   "mins": 20
-  }
- ],
- "starter": [
-  {
-   "day": 0,
-   "t": "Redactar la oferta y el mensaje de venta de un nicho",
-   "mins": 30
-  },
-  {
-   "day": 0,
-   "t": "Enviar 5 mensajes a barberías, peluquerías o spas",
-   "mins": 20
-  },
-  {
-   "day": 1,
-   "t": "Crear 1 pieza de contenido (post o reel) para la campaña",
-   "mins": 40
-  },
-  {
-   "day": 1,
-   "t": "Enviar 5 mensajes a barberías, peluquerías o spas",
-   "mins": 20
-  },
-  {
-   "day": 2,
-   "t": "Diseñar un anuncio para un nicho (barbería, peluquería o spa)",
-   "mins": 45
-  },
-  {
-   "day": 2,
-   "t": "Dar seguimiento a 3 prospectos que ya respondieron",
-   "mins": 20
-  },
-  {
-   "day": 3,
-   "t": "Enviar 5 mensajes a barberías, peluquerías o spas",
-   "mins": 20
-  },
-  {
-   "day": 3,
-   "t": "Crear 1 pieza de contenido (post o reel) para la campaña",
-   "mins": 40
-  },
-  {
-   "day": 4,
-   "t": "Agendar una demo con 1 negocio",
-   "mins": 20
-  },
-  {
-   "day": 4,
-   "t": "Revisar métricas de la campaña y ajustar",
-   "mins": 15
-  },
-  {
-   "day": 5,
-   "t": "Reunión corta con el equipo: quién, qué y cuándo",
-   "mins": 20
-  },
-  {
-   "day": 5,
-   "t": "Crear 1 pieza de contenido (post o reel) para la campaña",
-   "mins": 40
-  }
- ],
- "nichos": [
-  {
-   "n": "Barberías",
-   "msg": "Hola [nombre], soy Esteban de Iguana. Trabajamos con barberías para [beneficio de Iguana]. ¿Te muestro una demo de 5 minutos? Sin compromiso."
-  },
-  {
-   "n": "Peluquerías",
-   "msg": "Hola [nombre], te escribo de Iguana. Ayudamos a peluquerías a [beneficio de Iguana]. ¿Te comparto una demo corta para que la veas?"
-  },
-  {
-   "n": "Spas",
-   "msg": "Hola [nombre], soy Esteban de Iguana. Con los spas trabajamos para [beneficio de Iguana]. ¿Puedo mostrarte una demo de 5 minutos esta semana?"
-  }
- ],
+ "plantillas": [],
+ "starter": [],
+ "nichos": [],
  "datos": [
   {
    "t": "El Chimborazo, en Ecuador, tiene la cima más alejada del centro de la Tierra, porque el planeta se abulta en el ecuador.",
@@ -488,7 +361,7 @@
    "q": "El salmo invita a encomendar el camino a Dios y confiar en Él. ¿Qué plan tuyo necesitas entregarle?",
    "apply": [
     "Hacer mi parte y soltar el resultado",
-    "Orar por Iguana antes de empezar",
+    "Orar por tu proyecto antes de empezar",
     "Dejar de comparar mi progreso"
    ],
    "quiz": {
@@ -545,7 +418,7 @@
    "q": "El salmo pide aprender a contar los días para ganar sabiduría. ¿En qué estás invirtiendo tus días?",
    "apply": [
     "Quitar una actividad que me roba tiempo",
-    "Programar mi bloque de Iguana",
+    "Programar mi bloque de la noche",
     "Hacer lo importante antes que lo urgente"
    ],
    "quiz": {
@@ -621,7 +494,7 @@
    "q": "Si el Señor no edifica la casa, en vano trabajan los constructores; y Dios da descanso a sus amados. ¿Qué construyes y qué necesitas soltar?",
    "apply": [
     "Dormir a la hora sin culpa",
-    "Orar por Iguana y soltar el control",
+    "Orar por tu proyecto y soltar el control",
     "Trabajar con calma, sin ansiedad"
    ],
    "quiz": {
@@ -666,25 +539,11 @@
  ],
  "reminders": [
   {
-   "h": 6,
-   "m": 45,
-   "days": "daily",
-   "t": "Misiones de la mañana",
-   "b": "3 minutos: prioridades, meditación y tu salmo."
-  },
-  {
    "h": 18,
    "m": 15,
    "days": "daily",
    "t": "Hora de trotar",
    "b": "30 a 45 minutos y luego a cenar con tu familia."
-  },
-  {
-   "h": 19,
-   "m": 50,
-   "days": "daily",
-   "t": "Bloque Iguana en 10 minutos",
-   "b": "Deja las redes y abre tus misiones de la noche."
   },
   {
    "h": 22,
@@ -701,11 +560,18 @@
    "b": "A dormir. Mañana sigues la montaña."
   },
   {
-   "h": 18,
-   "m": 0,
-   "days": "SU",
-   "t": "Planifica tu semana",
-   "b": "15 minutos para definir prioridades y tareas."
+   "h": 7,
+   "m": 30,
+   "days": "daily",
+   "t": "Tu mañana",
+   "b": "Meditación, salmo y las tareas de hoy."
+  },
+  {
+   "h": 19,
+   "m": 50,
+   "days": "daily",
+   "t": "Tu noche empieza en 10 minutos",
+   "b": "Deja las redes y abre tus tareas de la noche."
   }
  ],
  "tz": "America/Guayaquil",
@@ -728,7 +594,7 @@
   },
   {
    "id": "noche",
-   "t": "Noche · Iguana",
+   "t": "Noche",
    "from": "20:00",
    "to": "22:00",
    "ico": "moon",
@@ -796,7 +662,7 @@
    ]
   },
   {
-   "title": "Primeras ventas de Iguana",
+   "title": "Primeras ventas del proyecto",
    "area": "trabajo",
    "days": 90,
    "note": "Meta de 90 días.",
@@ -814,7 +680,7 @@
    }
   },
   {
-   "title": "Vivir de Iguana y dejar mi trabajo actual",
+   "title": "Vivir de mi proyecto y dejar mi trabajo actual",
    "area": "trabajo",
    "days": 365,
    "note": "Objetivo del año.",
@@ -837,7 +703,7 @@
    ]
   },
   {
-   "title": "Salir del país y abrir Iguana afuera",
+   "title": "Salir del país y abrir el proyecto afuera",
    "area": "viajes",
    "days": 1095,
    "note": "Meta a 3 años.",
@@ -845,7 +711,7 @@
     "Elegir el primer país destino",
     "Tener ingresos remotos estables",
     "Viaje de exploración",
-    "Abrir Iguana afuera"
+    "Abrir el proyecto afuera"
    ]
   }
  ],
@@ -866,16 +732,6 @@
     4
    ],
    "scene": "work"
-  },
-  {
-   "id": "prior",
-   "t": "Prioridades del día",
-   "from": "06:45",
-   "to": "06:55",
-   "kind": "habit",
-   "habit": "prior",
-   "slot": "dawn",
-   "scene": "board"
   },
   {
    "id": "med",
@@ -918,14 +774,14 @@
    "scene": "family"
   },
   {
-   "id": "iguana",
-   "t": "Bloque de Iguana",
+   "id": "noche",
+   "t": "Bloque de la noche",
    "from": "20:00",
    "to": "22:00",
    "kind": "block",
    "slot": "night",
    "ico": "moon",
-   "scene": "iguana"
+   "scene": "night"
   },
   {
    "id": "redes",
@@ -938,19 +794,9 @@
    "scene": "phone"
   },
   {
-   "id": "pizarra",
-   "t": "Pizarra: marca tu racha",
-   "from": "22:10",
-   "to": "22:20",
-   "kind": "habit",
-   "habit": "pizarra",
-   "slot": "summit",
-   "scene": "board"
-  },
-  {
    "id": "dato",
    "t": "Comparte el dato del día",
-   "from": "22:20",
+   "from": "22:10",
    "to": "22:30",
    "kind": "habit",
    "habit": "dato",

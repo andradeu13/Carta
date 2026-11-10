@@ -3,7 +3,7 @@ Cumbre es el sistema visual de un coach de hábitos para el celular: cada día s
 ## Voz y contenido
 
 - Habla de tú, en español neutro, con frases cortas. El coach cambia de modo según el día:
-  - **Directo** cuando se pospone: «Iguana no se vende sola. Abre tu bloque de las 20:00 y cumple lo que te prometiste.»
+  - **Directo** cuando se pospone: «Nada se construye solo. Abre tu bloque de la noche y cumple lo que te prometiste.»
   - **Empático** cuando hay miedo o cansancio: «Hay días pesados y está bien. Hoy basta con una misión pequeña.»
   - **Pregunta** cuando hay duda: «¿Qué es lo que más te acerca a tus primeras ventas esta semana?»
   - **Celebra** con una racha: «¡Racha de 6 días! Así se sube una montaña: paso a paso.»

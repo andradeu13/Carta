@@ -312,7 +312,7 @@
 .cb-banner { --sky: linear-gradient(160deg, #E4DBFF, #CFF3E2); --sky-ink: var(--ink); background: var(--sky); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
 .cb-banner--run { --sky: linear-gradient(160deg, #FFD9C2, #FFB7CB); }
 .cb-banner--family { --sky: linear-gradient(160deg, #FFF1B8, #FFD3B0); }
-.cb-banner--iguana { --sky: linear-gradient(160deg, #DCD2FF, #B9D6FF); }
+.cb-banner--night { --sky: linear-gradient(160deg, #DCD2FF, #B9D6FF); --sky-ink: var(--ink); }
 .cb-banner--work { --sky: linear-gradient(160deg, #CFE6FF, #EAF3FF); }
 .cb-banner--meet { --sky: linear-gradient(160deg, #E3D9FF, #FFD9E8); }
 .cb-banner--lotus { --sky: linear-gradient(160deg, #CFF3E2, #D9ECFF); }

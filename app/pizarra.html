@@ -65,10 +65,6 @@
   var goals=Object.keys(S.goals||{}).map(function(k){return S.goals[k]}).filter(function(g){return g&&!g.deleted}).sort(function(a,b){return String(a.due||'9999').localeCompare(String(b.due||'9999'))}).slice(0,7);
   var pctG=function(g){if(g.done)return 100;var m=g.milestones||[];if(m.length)return Math.round(100*m.filter(function(x){return x.done}).length/m.length);if(g.target&&+g.target.value>0)return Math.min(100,Math.round(100*(+g.target.current||0)/+g.target.value));return 0};
   h+='<div class="row"><div class="card"><h2>Metas del año (marca los hitos)</h2>'+(goals.length?goals.map(function(g){var ms=g.milestones||[];return '<div class="stage"><span class="box '+(pctG(g)===100?'on':'')+'"></span><b>'+esc(g.title)+'</b> <small>· '+pctG(g)+'%'+(g.due?' · '+esc(g.due):'')+'</small></div>'+ms.map(function(m){return '<div class="stage" style="margin-left:18px"><span class="box '+(m.done?'on':'')+'"></span>'+esc(m.t)+'</div>'}).join('')}).join(''):'<p>Crea tus metas en la app (pestaña Metas) y vuelve a abrir esta hoja.</p>')+'</div>';
-  // Iguana
-  var wk={sent:0,replies:0,demos:0,sales:0,revenue:0};
-  for(var i2=0;i2<7;i2++){var dd2=new Date(mon);dd2.setDate(dd2.getDate()+i2);var r2=S.days[fmt(dd2)];if(r2)for(var k in wk)wk[k]+=r2[k]||0}
-  h+='<div class="card"><h2>Iguana · meta US$1000/mes</h2><table><tr><th>Mensajes</th><th>Respuestas</th><th>Demos</th><th>Ventas</th></tr><tr><td>'+wk.sent+'</td><td>'+wk.replies+'</td><td>'+wk.demos+'</td><td>'+wk.sales+'</td></tr></table><h2 style="margin-top:10px">Dato del día para compartir</h2><div class="lines"></div><h2 style="margin-top:10px">Notas</h2><div class="lines"></div></div></div>';
   if(!plan)h+='<p class="noprint">Aún no hay plan para esta semana. Créalo en la app (pestaña Semana) y vuelve a abrir esta hoja.</p>';
   document.getElementById('out').innerHTML=h;
 })();

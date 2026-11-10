@@ -71,8 +71,8 @@ export function planDue({ wd, secs, asks, plan }) {
   return !(plan && plan.tasks && plan.tasks.length);
 }
 export const planPayload = date => ({
-  title: 'Es lunes por la noche',
-  body: '¿Qué tareas tienes esta semana? Dímelas por voz o texto y las ordeno por día.',
+  title: 'Pizarra semanal',
+  body: 'Es lunes por la noche: anota las tareas de esta semana y las ordeno por día.',
   tag: `plan-${date}`,
   actions: [],
   data: { date, url: '/?plan=1' }

@@ -1,4 +1,4 @@
-const CACHE = 'cumbre-v8';
+const CACHE = 'cumbre-v9';
 const ASSETS = ['./', 'index.html', 'styles.css', 'app.js', 'store.js', 'learn.js', 'push.js', 'intake.js', 'agenda.js', 'scenes.js', 'pizarra.html', 'manifest.webmanifest', 'ds/tokens.css', 'ds/components.css', 'data/content.json', 'icon.svg', 'icon-192.png', 'icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));

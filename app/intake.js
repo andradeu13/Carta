@@ -40,7 +40,7 @@
         else if (/\bhoy\b/.test(p)) day = base;
         else if (/\bmanana\b/.test(p) && !/\b(?:por|en|de|a)\s+la\s+manana\b/.test(p) && !/\bmanana\s+(?:temprano|a las)\b/.test(p)) day = base + 1;
         if (/\b(?:por|en|de)\s+la\s+manana\b|\btemprano\b|\bal despertar\b/.test(p)) block = 'am';
-        else if (/\b(?:noche|tarde|despues del trabajo|iguana)\b/.test(p)) block = 'pm';
+        else if (/\b(?:noche|tarde|despues del trabajo)\b/.test(p)) block = 'pm';
         const mins = minutesOf(p);
         // limpiar el título
         title = title
