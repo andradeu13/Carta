@@ -947,7 +947,7 @@ function setAgenda(el) {
   }
   save(); tickBanner();
 }
-const APP_VERSION = '8.1';
+const APP_VERSION = '8.2';
 let setSec = 'horario';   // sección de Ajustes: 'horario' | 'tecnico'
 function viewMas() {
   const s = S.settings, name = (s.name || 'Esteban').trim() || 'Esteban';
