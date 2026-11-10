@@ -45,11 +45,18 @@ const hourNow = () => { const n = new Date(); return +(n.getHours() + n.getMinut
 // Fusiona un documento que llega de la base de datos (gana el más reciente).
 function applyRemote(col, key, o) {
   const newer = (a, b) => (a.u || 0) > ((b && b.u) || 0);
-  if (col === 'days') { if (!S.days[key] || newer(o, S.days[key])) { S.days[key] = o; return true; } return false; }
+  // Un documento vacío que llega «más nuevo» (p. ej. de una prueba) nunca borra lo que ya anotaste aquí: se conserva lo tuyo y se vuelve a subir.
+  const blankDay = d => !d || (!Object.keys(d.habits || {}).length && !(d.moods || []).length && !d.mood && !(d.xp || 0) && !Object.keys(d.notes || {}).length && !(d.tasksDone || 0));
+  const keepLocal = () => { setTimeout(save, 0); return false; };
+  if (col === 'days') {
+    if (S.days[key] && newer(o, S.days[key]) && blankDay(o) && !blankDay(S.days[key])) { S.days[key].u = Date.now(); return keepLocal(); }
+    if (!S.days[key] || newer(o, S.days[key])) { S.days[key] = o; return true; } return false;
+  }
   if (col === 'plans') {
     if (!S.plan || key > S.plan.weekStart) { if (S.plan) S.history[S.plan.weekStart] = S.plan; S.plan = o; delete S.history[key]; return true; }
-    if (S.plan.weekStart === key) { if (newer(o, S.plan)) { S.plan = o; return true; } return false; }
-    if (!S.history[key] || newer(o, S.history[key])) { S.history[key] = o; return true; }
+    const blankPlan = pl => !pl || !(pl.tasks || []).length;
+    if (S.plan.weekStart === key) { if (newer(o, S.plan)) { if (blankPlan(o) && !blankPlan(S.plan)) { S.plan.u = Date.now(); return keepLocal(); } S.plan = o; return true; } return false; }
+    if (!S.history[key] || newer(o, S.history[key])) { if (S.history[key] && blankPlan(o) && !blankPlan(S.history[key])) { S.history[key].u = Date.now(); return keepLocal(); } S.history[key] = o; return true; }
     return false;
   }
   if (col === 'meta') { if (newer(o, S.meta)) { S.xp = o.xp || 0; S.settings = Object.assign(S.settings, o.settings || {}); S.meta = o; return true; } return false; }
@@ -940,7 +947,7 @@ function setAgenda(el) {
   }
   save(); tickBanner();
 }
-const APP_VERSION = '8.0';
+const APP_VERSION = '8.1';
 let setSec = 'horario';   // sección de Ajustes: 'horario' | 'tecnico'
 function viewMas() {
   const s = S.settings, name = (s.name || 'Esteban').trim() || 'Esteban';
