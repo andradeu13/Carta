@@ -325,3 +325,4 @@
 .cb-banner--closed { --sky: linear-gradient(160deg, #E4DBFF, #CFF3E2); }
 .cb-banner__art svg { height: 150px; }
 @media (prefers-reduced-motion: reduce) { .cb-bob, .cb-drift, .cb-twinkle, .cb-spin { animation: none !important; } }
+.cb-banner--lunch { --sky: linear-gradient(160deg, #FFF1B8, #FFD9E4); }

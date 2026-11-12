@@ -6,11 +6,6 @@ const DAYS_FULL = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábad
 const MOODS = [{ k: 'sad', n: 1, t: 'Triste' }, { k: 'anxious', n: 2, t: 'Ansioso' }, { k: 'calm', n: 3, t: 'Calmado' }, { k: 'happy', n: 4, t: 'Feliz' }];
 const MOOD_FACE = { happy: '', calm: ' cb-face--calm', sad: ' cb-face--sad', anxious: ' cb-face--anxious' };
 const MOOD_MSG = { 4: ['celebrate', 'Celebrando', 'Aprovecha esa energía: arranca por la tarea más difícil de tu día.'], 3: ['socratic', 'Pregunta', '¿Qué es lo que más te acerca a tu primera venta esta semana?'], 2: ['empathic', 'Contigo', 'Respira 4-7-8 durante tres minutos y luego decidimos.'], 1: ['empathic', 'Contigo', 'Hay días pesados y está bien. Hoy basta con una misión pequeña.'] };
-const JOURNAL = [
-  { id: 'grat', t: 'Pausa y reflexiona', q: '¿Por qué estás agradecido hoy?', tag: 'Personal', tone: '' },
-  { id: 'int', t: 'Define tu intención', q: '¿Cómo quieres sentirte esta noche?', tag: 'Noche', tone: ' cb-jcard--lilac' },
-  { id: 'desc', t: 'Descarga mental', q: 'Saca lo que te preocupa antes de dormir.', tag: 'Calma', tone: ' cb-jcard--sand' }
-];
 const ico = (n, c = '') => `<i class="cb-ico ${c} cb-ico-${n}"></i>`;
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -126,6 +121,7 @@ function mergeDay(a, b) {
   const out = Object.assign({}, b, a);
   out.habits = Object.assign({}, b.habits, a.habits);
   out.times = Object.assign({}, b.times, a.times);
+  { const seen = {}, all = []; (a.workouts || []).concat(b.workouts || []).forEach(w => { if (!seen[w.wid]) { seen[w.wid] = 1; all.push(w); } }); if (all.length) out.workouts = all; }
   out.acts = Object.assign({}, b.acts); Object.keys(a.acts || {}).forEach(k => { const x = a.acts[k], y = out.acts[k]; if (!y || y.st !== 'done') out.acts[k] = x; });
   const missed = Object.assign({}, b.missed, a.missed); Object.keys(missed).forEach(k => { if (out.habits[k]) delete missed[k]; });
   if (Object.keys(missed).length) out.missed = missed; else delete out.missed;
@@ -494,12 +490,12 @@ function taskRow(t, opts = {}) {
   const prio = t.prio && PRIO[t.prio];
   const sub = [opts.showBlock ? (t.block === 'am' ? 'Mañana' : 'Noche') : '', opts.late ? 'Atrasada · ' + DAYS[t.day] : ''].filter(Boolean).join(' · ');
   return `<div class="trow${t.done ? ' is-done' : ''}${opts.late ? ' is-late' : ''}" data-tid="${esc(t.id)}">
-    <button class="trow__grip" data-grip aria-label="Arrastrar ${esc(t.title)} para ordenar">${ico('dots', 'cb-ico--sm')}</button>
+    ${opts.noGrip ? '<span class="trow__gap"></span>' : `<button class="trow__grip" data-grip aria-label="Arrastrar ${esc(t.title)} para ordenar">${ico('dots', 'cb-ico--sm')}</button>`}
     <button class="trow__chk" data-act="task" data-id="${esc(t.id)}" aria-pressed="${!!t.done}" aria-label="${t.done ? 'Desmarcar' : 'Marcar como hecha'}: ${esc(t.title)}"><span class="cb-check">${ico('check')}</span></button>
     <span class="trow__b"><span class="trow__t">${esc(t.title)}</span>${sub || prio ? `<span class="trow__s">${prio ? `<i class="pdot" style="background:${prio[1]}"></i>${prio[0]}` : ''}${prio && sub ? ' · ' : ''}${esc(sub)}</span>` : ''}</span>
     <button class="x" data-act="tedit" data-id="${esc(t.id)}" aria-label="Editar ${esc(t.title)}">${ico('pencil', 'cb-ico--sm')}</button></div>`;
 }
-const taskList = (tasks, attrs, empty, opts) => `<div class="dl" ${attrs}>${tasks.map(t => taskRow(t, opts)).join('') || `<p class="dl__empty">${empty}</p>`}</div>`;
+const taskList = (tasks, attrs, empty, opts) => `<div class="dl" ${attrs}>${tasks.map(t => taskRow(t, opts)).join('') || (empty ? `<p class="dl__empty">${empty}</p>` : '')}</div>`;
 
 /* arrastrar para ordenar (y para cambiar de día en la pestaña Semana) */
 let drag = null;
@@ -548,14 +544,13 @@ function commitOrder() {
 let ted = null;   // { id, draft:{title, block, day}, confirm, showDay }
 function openTaskEditor(id, opts = {}) {
   const f = id && findTask(id);
-  ted = { id: f ? id : null, confirm: false, showDay: !!opts.showDay, draft: f ? { title: f.t.title, block: f.t.block === 'am' ? 'am' : 'pm', day: f.t.day } : { title: '', block: opts.block || (hourNow() < 12 ? 'am' : 'pm'), day: opts.day ?? todayIdx() } };
+  ted = { id: f ? id : null, confirm: false, showDay: !!opts.showDay, draft: f ? { title: f.t.title, block: f.t.block === 'am' ? 'am' : 'pm', day: f.t.day } : { title: '', block: 'pm', day: opts.day ?? todayIdx() } };
   drawTaskEditor();
 }
 function drawTaskEditor() {
   const d = ted.draft;
   openSheet(`<h1>${ted.id ? 'Editar tarea' : 'Nueva tarea'}</h1>
-    <label for="te-t">¿Qué tienes que hacer?</label><input id="te-t" data-tb="title" value="${esc(d.title)}" maxlength="120" placeholder="Ej: Enviar la propuesta">
-    <div class="seg" role="radiogroup" aria-label="Momento"><button class="seg__b${d.block === 'am' ? ' is-on' : ''}" role="radio" aria-checked="${d.block === 'am'}" data-act="tblock" data-id="am">${ico('sun', 'cb-ico--sm')}Mañana</button><button class="seg__b${d.block === 'pm' ? ' is-on' : ''}" role="radio" aria-checked="${d.block === 'pm'}" data-act="tblock" data-id="pm">${ico('moon', 'cb-ico--sm')}Noche</button></div>
+    <label for="te-t">¿Qué tienes que hacer?</label><input id="te-t" data-tb="title" value="${esc(d.title)}" maxlength="120" placeholder="Ej: Enviar la propuesta" autocomplete="off">
     ${ted.showDay ? `<label for="te-d">Día</label><select id="te-d" data-tb="day">${DAYS_FULL.map((x, i) => `<option value="${i}"${d.day === i ? ' selected' : ''}>${x}</option>`).join('')}</select>` : ''}
     <button class="cb-btn" data-act="tsave">Guardar</button>
     ${ted.id ? (ted.confirm ? `<p class="warn" role="alert">¿Eliminar esta tarea?</p><button class="cb-btn cb-btn--danger" data-act="tdel2">Sí, eliminar</button><button class="cb-btn cb-btn--secondary" data-act="tdel0">Cancelar</button>` : `<button class="cb-btn cb-btn--secondary" data-act="tdel1">${ico('trash', 'cb-ico--sm')}Eliminar</button>`) : ''}
@@ -563,8 +558,8 @@ function drawTaskEditor() {
 }
 function saveTaskEditor() {
   const d = ted.draft, title = (d.title || '').trim(); if (!title) { toast('Escribe la tarea'); return; }
-  if (ted.id) { const f = findTask(ted.id); if (f) { f.t.title = title; f.t.block = d.block; if (ted.showDay) f.t.day = +d.day; save(); } }
-  else addTask({ title, day: +d.day, block: d.block });
+  if (ted.id) { const f = findTask(ted.id); if (f) { f.t.title = title; if (ted.showDay) f.t.day = +d.day; save(); } }
+  else addTask({ title, day: +d.day, block: 'pm' });
   ted = null; closeSheet(); render();
 }
 
@@ -590,6 +585,7 @@ function drawCheck() {
     <div class="stack">${rows}</div>
     ${chk.moved.length ? `<p class="cap">Movidas</p>${chk.moved.map(m => `<p class="mut">↪ ${esc(m.t)} · ${esc(m.when)} · prioridad ${esc(m.p)}</p>`).join('')}` : ''}
     ${tasks.length && !pend.length ? '<p><b>¡Todo al día!</b> Buen trabajo.</p>' : ''}
+    <label for="ck-note">Nota del día (opcional)</label><textarea id="ck-note" rows="2" maxlength="300" placeholder="¿Algo que quieras recordar de hoy?">${esc((rec(todayStr()).notes || {}).dia || '')}</textarea>
     <button class="cb-btn ${pend.length ? 'cb-btn--secondary' : ''}" data-act="ckclose">${pend.length ? 'Después' : 'Listo'}</button>`);
 }
 function checkCard() {
@@ -606,51 +602,87 @@ function maybeAutoCheck() {
 
 /* ---------- vistas ---------- */
 function convoCard(d) {
-  return `<div class="convo"><div class="convo__top"><span class="convo__ico">${ico('chat')}</span><span class="convo__kick">Para conversar hoy</span><span class="cb-tag">Dato del día</span></div>
-    <p class="convo__t">${esc(d.t)}</p>
-    <div class="convo__q"><span class="convo__tag">Rompe el hielo</span><p>«${esc(d.q)}»</p></div>
-    <svg class="convo__deco" viewBox="0 0 120 60" aria-hidden="true"><circle cx="100" cy="14" r="5" fill="#FFC83D"/><circle cx="82" cy="40" r="3" fill="#FF8FB8"/><path d="M16 12l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#6A47F5" opacity=".5"/><circle cx="108" cy="46" r="7" fill="#6FD9AE" opacity=".6"/></svg></div>`;
+  return `<details class="convo"><summary class="convo__sum"><span class="convo__ico">${ico('chat')}</span><span class="convo__kick">Para conversar hoy</span><span class="convo__chev" aria-hidden="true"></span></summary>
+    <div class="convo__body"><p class="convo__t">${esc(d.t)}</p><div class="convo__q"><span class="convo__tag">Rompe el hielo</span><p>«${esc(d.q)}»</p></div></div></details>`;
 }
-function habitGroup(slot) {
-  const foc = (S.claude && S.claude.focus) || [];
-  return C.habits.filter(h => h.slot === slot).sort((a, b) => (foc.includes(b.id) - foc.includes(a.id))).map(habitMission).map(missionRow).join('');
-}
-const hoySig = () => [moodDue(rec(todayStr())), checkDue(), intakeDue(), checkPending().length].join('|');
+const hoySig = () => [moodDue(rec(todayStr())), checkDue(), quizDue(), checkPending().length].join('|');
+const FULL_MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+/* Hoy: la fecha y un solo checklist con lo que falta; lo ya cumplido se esconde en un resumen. */
 function viewHoy() {
-  hoySig.last = hoySig();
-  const ds = todayStr(), r = rec(ds);
-  const dato = C.datos[dayNum() % C.datos.length];
-  const notes = r.notes || {};
-  const d = todayIdx(), minimal = !!(S.learned && S.learned.load && S.learned.load.minimal) && !showAll;
-  let h = header() + reminderCard() + intakeCard() + checkCard() + bannerHtml();
-  h += moodHtml(r);
-  if (!S.settings.notif) h += `<div class="cb-reminder" style="margin:var(--space-4) 0"><div><h3 class="cb-reminder__title">Activa tus recordatorios</h3><p class="cb-reminder__text">Que no se te pase la rutina de la mañana ni tus tareas de la noche.</p><button class="cb-btn cb-btn--violet cb-btn--sm" data-act="notif">Activar ahora</button></div>${BELL}</div>`;
-  h += convoCard(dato);
-  h += `<div class="sec-h"><h2>Diario rápido</h2></div><div class="cb-jrow">${JOURNAL.map((j, i) => `<button class="cb-jcard${j.tone}" data-act="jr" data-id="${i}"><span><span class="cb-jcard__title">${j.t}</span><span class="cb-jcard__text">${notes[j.id] ? esc(notes[j.id]).slice(0, 60) : j.q}</span></span><span class="cb-jcard__foot">${notes[j.id] ? 'Guardado' : 'Hoy'}<span class="cb-tag">${j.tag}</span></span></button>`).join('')}</div>`;
+  const ds = todayStr(), r = rec(ds), dato = C.datos[dayNum() % C.datos.length], d = todayIdx(), now = new Date();
+  const habs = C.habits.filter(h => h.slot === 'manana' || h.slot === 'noche');
+  const hab = slot => habs.filter(h => h.slot === slot).map(habitMission);
+  const tasks = dayTasks(d), late = lateToday().filter(t => !t.done);
+  const pendTasks = tasks.filter(t => !t.done), doneTasks = tasks.filter(t => t.done);
+  const pendMorning = hab('manana').filter(m => !m.done), pendNight = hab('noche').filter(m => !m.done);
+  const doneHabs = habs.map(habitMission).filter(m => m.done);
+  const doneCount = doneHabs.length + doneTasks.length, total = habs.length + tasks.length;
+  let h = header() + reminderCard() + quizCard() + checkCard() + bannerHtml() + moodHtml(r);
+  if (!S.settings.notif) h += `<div class="cb-reminder" style="margin:var(--space-4) 0"><div><h3 class="cb-reminder__title">Activa tus recordatorios</h3><p class="cb-reminder__text">Que no se te pase la rutina de la mañana ni tus tareas.</p><button class="cb-btn cb-btn--violet cb-btn--sm" data-act="notif">Activar ahora</button></div>${BELL}</div>`;
+  h += `<div class="todayh"><div><small>${DAYS_FULL[d]}</small><h2>${now.getDate()} de ${FULL_MONTHS[now.getMonth()]}</h2></div><div class="todayh__r"><b>${doneCount}/${total}</b><small>hecho</small><button class="cb-iconbtn cb-iconbtn--sm" data-act="tadd" data-id="x" aria-label="Añadir tarea">${ico('plus', 'cb-ico--sm')}</button></div></div>`;
+  const minimal = !!(S.learned && S.learned.load && S.learned.load.minimal) && !showAll;
   if (minimal) {
-    h += `<div class="sec-h"><h2>${ico('spark')} Hoy, lo mínimo</h2></div><p class="mut">Los últimos días cumpliste poco. Con estas tres misiones retomas el ritmo; el resto puede esperar.</p>` + essentials(r, dayTasks(d)).map(missionRow).join('') + `<button class="cb-btn cb-btn--secondary" style="margin-top:var(--space-4)" data-act="showall">Ver todo mi día</button>`;
-    return h;
+    h += `<p class="mut">Los últimos días cumpliste poco. Con estas tres retomas el ritmo; el resto puede esperar.</p>` + essentials(r, tasks).map(missionRow).join('') + `<button class="cb-btn cb-btn--secondary" style="margin-top:var(--space-4)" data-act="showall">Ver todo mi día</button>`;
+  } else {
+    const lev = leverHabit(r);
+    if (lev && !r.habits[lev.habit.id]) h += `<div class="card lever"><span class="cap">${ico('spark', 'cb-ico--sm')} Tu palanca de hoy</span><b>${esc(lev.habit.t)}</b><p class="mut">${esc(lev.why)} Hazla primero.</p><button class="cb-btn cb-btn--sm" data-act="lever" data-id="${lev.habit.id}">Empezar</button></div>`;
+    if (late.length) h += `<div class="dl" data-late>${late.map(t => taskRow(t, { late: true, noGrip: true })).join('')}</div>`;
+    h += pendMorning.map(missionRow).join('');
+    h += taskList(pendTasks, `data-day="${d}"`, total && !pendNight.length && !pendMorning.length && !late.length ? '' : 'Sin tareas pendientes. Añade una con +.');
+    h += pendNight.map(missionRow).join('');
+    if (!late.length && !pendTasks.length && !pendMorning.length && !pendNight.length) h += `<div class="alldone"><b>¡Todo listo por hoy!</b><span>Cumpliste todo lo del día. Descansa.</span></div>`;
+    if (doneCount) h += `<details class="donesum"><summary>${ico('check', 'cb-ico--sm')} ${doneCount} ${doneCount === 1 ? 'hecha' : 'hechas'} hoy</summary><div class="stack">${doneHabs.map(missionRow).join('')}${doneTasks.map(t => taskRow(t, { noGrip: true })).join('')}</div></details>`;
   }
-  const lev = leverHabit(r);
-  if (lev && !r.habits[lev.habit.id]) h += `<div class="card lever"><span class="cap">${ico('spark', 'cb-ico--sm')} Tu palanca de hoy</span><b>${esc(lev.habit.t)}</b><p class="mut">${esc(lev.why)} Hazla primero.</p><button class="cb-btn cb-btn--sm" data-act="lever" data-id="${lev.habit.id}">Empezar</button></div>`;
-  const od = lateToday().filter(t => !t.done);
-  if (od.length) h += `<div class="sec-h"><h2>${ico('clock')} Atrasadas</h2></div><div class="dl" data-late>${od.map(t => taskRow(t, { late: true })).join('')}</div>`;
-  h += `<div class="sec-h"><h2>${ico('sun')} Mañana</h2><button class="cb-iconbtn cb-iconbtn--sm" data-act="tadd" data-id="am" aria-label="Añadir tarea de la mañana">${ico('plus', 'cb-ico--sm')}</button></div>` + habitGroup('manana') + taskList(dayTasks(d, 'am'), `data-day="${d}" data-block="am"`, 'Sin tareas por la mañana. Arrastra una aquí o añade una con +.');
-  h += `<div class="sec-h"><h2>${ico('moon')} Noche</h2><button class="cb-iconbtn cb-iconbtn--sm" data-act="tadd" data-id="pm" aria-label="Añadir tarea de la noche">${ico('plus', 'cb-ico--sm')}</button></div>` + taskList(dayTasks(d, 'pm'), `data-day="${d}" data-block="pm"`, 'Sin tareas para la noche. Añade una con + o anótalas en la pizarra semanal.') + habitGroup('noche');
+  h += convoCard(dato);
   return h;
 }
+/* ---------- planear la semana como un quiz: un día por pantalla ---------- */
+let qz = null;   // { mon, days:[índices], i, text }
+const quizDue = () => todayIdx() === 0 && tzNow() >= 19 * 3600 && S.settings.intakeDone !== thisMon() && S.settings.intakeSnooze !== todayStr();
+function quizCard() {
+  if (!quizDue()) return '';
+  return `<div class="intake"><span class="intake__ico">${ico('journal')}</span><div class="intake__b"><b>Planea tu semana</b><span>Es lunes por la noche: 7 preguntas rápidas, una por día.</span></div>
+    <button class="cb-btn cb-btn--sm" data-act="quiz">Empezar</button><button class="intake__x" data-act="intakesnooze" aria-label="Ahora no">${ico('close', 'cb-ico--sm')}</button></div>`;
+}
+function startQuiz() {
+  const mon = targetWeek(), cur = mon === thisMon();
+  qz = { mon, days: [0, 1, 2, 3, 4, 5, 6].filter(d => !cur || d >= todayIdx()), i: 0 };
+  tab = 'semana'; render(); window.scrollTo(0, 0);
+}
+const qzDate = d => fmt(addDays(parse(qz.mon), d));
+function viewQuiz() {
+  const total = qz.days.length;
+  if (qz.i >= total) {
+    const p = planFor(qz.mon, false), n = p ? p.tasks.length : 0;
+    return `<div class="quiz"><div class="quiz__done"><span class="quiz__big">🎉</span><h1>¡Listo!</h1><p class="mut">${n ? `Anotaste ${n} ${n === 1 ? 'tarea' : 'tareas'} para la semana.` : 'No anotaste tareas: puedes añadirlas cuando quieras.'}</p><button class="cb-btn cb-btn--block" data-act="qzend">Ver mi semana</button></div></div>`;
+  }
+  const d = qz.days[qz.i], p = planFor(qz.mon, false), ts = p ? sortTasks(p.tasks.filter(t => t.day === d)) : [], date = parse(qzDate(d));
+  const dot = qz.days.map((_, k) => `<i class="${k < qz.i ? 'is-ok' : k === qz.i ? 'is-now' : ''}"></i>`).join('');
+  return `<div class="quiz"><div class="quiz__top"><button class="cb-iconbtn" data-act="qzback" aria-label="Atrás">${ico('back')}</button><div class="quiz__dots" aria-label="Pregunta ${qz.i + 1} de ${total}">${dot}</div><button class="cb-btn cb-btn--ghost cb-btn--sm" data-act="qzend">Salir</button></div>
+    <small class="quiz__day">${DAYS_FULL[d]} ${date.getDate()} de ${FULL_MONTHS[date.getMonth()]}</small>
+    <h1 class="quiz__q">¿Qué tienes que hacer el ${DAYS_FULL[d].toLowerCase()}?</h1>
+    <div class="quiz__chips">${ts.map(t => `<span class="qchip">${esc(t.title)}<button data-act="qzrm" data-id="${esc(t.id)}" aria-label="Quitar ${esc(t.title)}">${ico('close', 'cb-ico--sm')}</button></span>`).join('')}</div>
+    <div class="quiz__add"><input id="qz-t" placeholder="Escribe una tarea y toca +" maxlength="120" autocomplete="off" enterkeyhint="done" aria-label="Nueva tarea"><button class="cb-btn" data-act="qzadd" aria-label="Añadir tarea">${ico('plus', 'cb-ico--sm')}</button></div>
+    <div class="quiz__nav"><button class="cb-btn cb-btn--secondary grow" data-act="qznext">${ts.length ? 'Siguiente' : 'Nada este día'}</button></div></div>`;
+}
+function quizAdd() {
+  const el = $('#qz-t'); if (!el) return; const v = el.value.trim(); if (!v) { return; }
+  addTask({ title: v, date: qzDate(qz.days[qz.i]) }); render(); const n = $('#qz-t'); if (n) n.focus();
+}
 function viewSemana() {
+  if (qz) return viewQuiz();
   const p = planCurrent();
   let h = `<h1>Semana</h1>`;
-  h += `<div class="pizcard"><span class="pizcard__ico">${ico('journal')}</span><div class="pizcard__b"><b>Pizarra semanal</b><span>Una vez a la semana anota aquí todas tus tareas.</span></div><button class="cb-btn cb-btn--sm" data-act="intake">Abrir</button></div>`;
-  h += `<p class="mut">Mantén pulsado el asa ⋮⋮ y arrastra una tarea para cambiarla de día o de lugar.</p>`;
+  h += `<div class="pizcard"><span class="pizcard__ico">${ico('journal')}</span><div class="pizcard__b"><b>Planear mi semana</b><span>Siete preguntas rápidas, una por día.</span></div><button class="cb-btn cb-btn--sm" data-act="quiz">Empezar</button></div>`;
+  h += `<p class="mut">Toca el lápiz para editar una tarea. Mantén pulsado ⋮⋮ y arrastra para cambiarla de día o de lugar.</p>`;
   for (let d = 0; d < 7; d++) {
     const ts = p ? sortTasks(p.tasks.filter(t => t.day === d)) : [];
     h += `<section class="wk${d === todayIdx() ? ' is-today' : ''}"><div class="wk__h"><h3>${DAYS_FULL[d]}${d === todayIdx() ? ' · hoy' : ''}</h3><button class="cb-iconbtn cb-iconbtn--sm" data-act="tadd" data-id="d${d}" aria-label="Añadir tarea el ${DAYS_FULL[d]}">${ico('plus', 'cb-ico--sm')}</button></div>`;
-    h += taskList(ts, `data-day="${d}"`, 'Libre', { showBlock: true }) + `</section>`;
+    h += taskList(ts, `data-day="${d}"`, 'Libre') + `</section>`;
   }
   return h;
 }
+
 /* ---------- pantalla Metas ---------- */
 function goalCard(g) {
   const p = goalPct(g), ar = areaOf(g.area), ms = g.milestones || [], done = ms.filter(m => m.done).length;
@@ -726,41 +758,6 @@ function seedGoals() {
 }
 
 
-/* ---------- pizarra semanal: una vez a la semana anotas todas tus tareas ---------- */
-let itk = null;   // { text, items|null }
-const intakeDue = () => todayIdx() === 0 && tzNow() >= 19 * 3600 && S.settings.intakeDone !== thisMon() && S.settings.intakeSnooze !== todayStr();
-function intakeCard() {
-  if (!intakeDue()) return '';
-  return `<div class="intake"><span class="intake__ico">${ico('journal')}</span><div class="intake__b"><b>Pizarra semanal</b><span>Es lunes por la noche: anota las tareas de esta semana y las ordeno por día.</span></div>
-    <button class="cb-btn cb-btn--sm" data-act="intake">Anotar tareas</button><button class="intake__x" data-act="intakesnooze" aria-label="Ahora no">${ico('close', 'cb-ico--sm')}</button></div>`;
-}
-function openIntake() { itk = { text: '', items: null }; drawIntake(); }
-function drawIntake() {
-  const w = itk;
-  if (!w.items) {
-    openSheet(`<h1>Pizarra semanal</h1>
-      <p class="mut">Escribe todo lo que tienes que hacer esta semana, una idea por línea o separadas por comas. Por ejemplo: «El martes enviar la propuesta, el jueves 5 mensajes por la noche, el viernes diseñar el post».</p>
-      <textarea id="itk-text" rows="7" placeholder="Escribe tus tareas aquí" aria-label="Tus tareas de la semana">${esc(w.text)}</textarea>
-      <button class="cb-btn" data-act="itkparse">Ordenar mis tareas</button><button class="cb-btn cb-btn--ghost" data-act="itkclose">Ahora no</button>`);
-    return;
-  }
-  const rows = w.items.map((t, i) => `<div class="irow"><input class="irow__t" data-ib="${i}.title" value="${esc(t.title)}" aria-label="Tarea ${i + 1}" maxlength="120">
-      <select data-ib="${i}.day" aria-label="Día">${DAYS_FULL.map((d, k) => `<option value="${k}"${t.day === k ? ' selected' : ''}>${d}</option>`).join('')}</select>
-      <select data-ib="${i}.block" aria-label="Momento"><option value="am"${t.block === 'am' ? ' selected' : ''}>Mañana</option><option value="pm"${t.block !== 'am' ? ' selected' : ''}>Noche</option></select>
-      <button class="x" data-act="itkrm" data-id="${i}" aria-label="Quitar">${ico('close', 'cb-ico--sm')}</button></div>`).join('');
-  openSheet(`<h1>${w.items.length} ${w.items.length === 1 ? 'tarea' : 'tareas'}</h1><p class="mut">Revísalas: puedes cambiar el texto, el día o si es de mañana o de noche.</p>
-    <div class="stack">${rows || '<p class="mut">No entendí ninguna tarea. Vuelve y escribe una por frase.</p>'}</div>
-    <button class="cb-btn" data-act="itkadd"${w.items.length ? '' : ' disabled'}>Añadir a mi semana</button><button class="cb-btn cb-btn--secondary" data-act="itkback">Volver a editar</button>`);
-}
-function addIntakeTasks() {
-  const w = itk; if (!w || !w.items.length) return;
-  const p = planFor(thisMon(), true);
-  w.items.forEach(t => { const title = String(t.title || '').trim(); if (!title) return; const d = Math.max(0, Math.min(6, +t.day || 0)); p.tasks.push({ id: uid(), title, day: d, block: t.block === 'am' ? 'am' : 'pm', mins: 30, done: null, ord: Math.max(0, ...p.tasks.filter(x => x.day === d).map(x => x.ord || 0)) + 1 }); });
-  S.settings.intakeDone = thisMon();
-  itk = null; closeSheet(); save(); render();
-  toast('Tareas añadidas a tu semana');
-}
-
 /* ---------- recordatorios: lista y editor ---------- */
 let red = null;   // editor de recordatorios: { id, draft, confirm }
 function openReminders() {
@@ -818,6 +815,26 @@ function showPeek(btn) {
 function hidePeek() { const el = $('#peek'); if (el) { el.hidden = true; el.innerHTML = ''; } clearTimeout(peekTimer); peekStart = null; }
 
 function rangeDays(n) { const out = []; for (let i = n - 1; i >= 0; i--) out.push(fmt(addDays(new Date(), -i))); return out; }
+/* Ejercicio de la semana: lo que manda tu Atajo de Apple Fitness (o marcar el trote a mano). */
+const GOAL_EX = () => ({ sessions: +(S.settings.exSessions) || 3, mins: +(S.settings.exMins) || 90 });
+function weekExercise() {
+  const mon = mondayOf(new Date()); let sessions = 0, mins = 0, km = 0;
+  for (let i = 0; i < 7; i++) {
+    const r = S.days[fmt(addDays(mon, i))]; if (!r) continue;
+    const w = r.workouts || [];
+    if (w.length) { sessions += w.length; w.forEach(x => { mins += x.mins || 0; km += x.km || 0; }); }
+    else if (r.habits && r.habits.trote) { sessions += 1; mins += 30; }
+  }
+  return { sessions, mins, km: Math.round(km * 10) / 10 };
+}
+function exerciseCard() {
+  const g = GOAL_EX(), w = weekExercise(), ps = Math.min(100, Math.round(100 * w.sessions / g.sessions)), pm = Math.min(100, Math.round(100 * w.mins / g.mins));
+  const falta = Math.max(0, g.sessions - w.sessions), faltan = Math.max(0, g.mins - w.mins);
+  return `<div class="card exercard"><div class="row sb"><b>${ico('trail', 'cb-ico--sm')} Ejercicio de la semana</b><span class="cb-tag">${w.sessions}/${g.sessions} sesiones</span></div>
+    <div class="exbar"><i style="width:${ps}%"></i></div><small class="mut">${w.sessions} de ${g.sessions} sesiones</small>
+    <div class="exbar exbar--b"><i style="width:${pm}%"></i></div><small class="mut">${w.mins} de ${g.mins} min${w.km ? ` · ${w.km} km` : ''}</small>
+    <p class="mut">${falta || faltan ? `Te ${falta === 1 ? 'falta' : 'faltan'} ${falta ? falta + (falta === 1 ? ' sesión' : ' sesiones') : ''}${falta && faltan ? ' y ' : ''}${faltan ? faltan + ' min' : ''} para cerrar tu meta (la que fijaste de tu plan Vitality).` : '¡Meta de la semana cumplida! Revisa tus puntos en Vitality.'}</p></div>`;
+}
 function viewProgreso() {
   const days = rangeDays(progRange), st = streakInfo();
   const pct = id => Math.round(100 * days.filter(d => S.days[d] && S.days[d].habits[id]).length / days.length);
@@ -830,6 +847,7 @@ function viewProgreso() {
   const bars = (list, solid) => `<div class="cb-caps${solid ? ' cb-caps--solid' : ''}">${list.map(b => `<div class="cb-cap"><div class="cb-cap__track"><div class="cb-cap__fill" style="--v:0;--c:var(--${b[2]});--on-c:var(--on-${b[2]})" data-v="${b[1]}">${b[1]}%</div></div><span class="cb-cap__label">${b[0]}</span></div>`).join('')}</div>`;
   const best = habits.map(h => [h[0], pct(h[1])]).sort((a, b) => b[1] - a[1])[0];
   let h = `<div class="hd"><button class="cb-iconbtn" data-act="goto" data-id="hoy" aria-label="Volver a Hoy">${ico('back')}</button><h1 class="hd__t">Tu progreso</h1></div>`;
+  h += exerciseCard();
   h += `<div class="row" style="margin-bottom:var(--space-4)"><button class="cb-chip ${progRange === 7 ? 'is-on' : ''}" data-act="range" data-id="7">Semana</button><button class="cb-chip ${progRange === 30 ? 'is-on' : ''}" data-act="range" data-id="30">Mes</button></div>`;
   h += `<p class="cap">Hábitos cumplidos (porcentaje de días)</p>` + bars(habits.map(x => [x[0], pct(x[1]), x[2]]));
   h += `<p class="cap" style="margin-top:var(--space-6)">Estados de ánimo</p>` + (moodTotal ? bars(moods.map(m => [m[0], Math.round(100 * moodCount[m[1]] / moodTotal), m[2]]), true) : `<p class="mut">Elige cómo vienes en la pantalla Hoy y aquí verás tus emociones.</p>`);
@@ -903,7 +921,7 @@ async function paintPush() {
 // Si llegas desde una notificación sin botones (p. ej. iPhone), la app pregunta aquí mismo.
 function askFromUrl() {
   const q = new URLSearchParams(location.search);
-  if (q.get('plan')) { try { history.replaceState(null, '', location.pathname); } catch (e) { /* ignorar */ } openIntake(); return; }
+  if (q.get('plan')) { try { history.replaceState(null, '', location.pathname); } catch (e) { /* ignorar */ } startQuiz(); return; }
   if (!q.get('ask')) return;
   const p = { i: q.get('ask'), d: q.get('d'), r: q.get('r'), e: q.get('e'), sy: q.get('sy'), sn: q.get('sn') };
   try { history.replaceState(null, '', location.pathname); } catch (e) { /* ignorar */ }
@@ -947,7 +965,7 @@ function setAgenda(el) {
   }
   save(); tickBanner();
 }
-const APP_VERSION = '8.2';
+const APP_VERSION = '9.0';
 let setSec = 'horario';   // sección de Ajustes: 'horario' | 'tecnico'
 function viewMas() {
   const s = S.settings, name = (s.name || 'Esteban').trim() || 'Esteban';
@@ -961,12 +979,21 @@ function viewMas() {
   <div class="card"><b>Chequeos del día</b><p class="mut">Cuándo te pregunto cómo vas.</p>
     <div class="row"><div class="grow"><label for="set-chk">Chequeo de tareas</label><input type="time" id="set-chk" value="${esc(s.checkAt || '16:30')}"></div></div>
     <div class="row"><div class="grow"><label for="set-mam">Ánimo de la mañana</label><input type="time" id="set-mam" value="${esc(s.moodAM || '07:30')}"></div><div class="grow"><label for="set-mpm">Ánimo de la noche</label><input type="time" id="set-mpm" value="${esc(s.moodPM || '21:30')}"></div></div></div>
+  <div class="card"><b>Meta de ejercicio por semana</b><p class="mut">Pon lo que te pide tu plan Vitality: así te digo cuánto te falta.</p>
+    <div class="row"><div class="grow"><label for="set-exs">Sesiones</label><input type="number" id="set-exs" value="${s.exSessions || 3}" min="1" max="14"></div><div class="grow"><label for="set-exm">Minutos</label><input type="number" id="set-exm" value="${s.exMins || 90}" min="10" step="5"></div></div></div>
   <div class="card"><b>Tus límites</b>
     <label for="set-bed">Hora de dormir</label><input type="time" id="set-bed" value="${esc(s.bedtime)}">
     <label for="set-redes">Límite de redes al día (min)</label><input type="number" id="set-redes" value="${s.redes}" min="0" step="5"></div>`;
   return head + `
   <div class="card" id="pushcard"><b>Avisos en el celular</b><p class="mut" data-push-text>Revisando…</p><div data-push-actions></div>
     <label for="set-token">Código de acceso</label><input type="password" id="set-token" autocomplete="off" placeholder="El APP_TOKEN de tu Worker" value="${esc(Store.token())}"><div class="gap"></div><button class="cb-btn cb-btn--secondary" data-act="savetoken">Guardar código</button></div>
+  <div class="card" id="fitcard"><b>Apple Fitness (trote automático)</b><p class="mut">Un Atajo de tu iPhone avisa a tu Worker cuando termina un entrenamiento de correr o caminar de 15 min o más, y la app marca el trote solo. Funciona con Apple Watch o con el iPhone.</p>
+    <ol class="steps"><li>Abre <b>Atajos</b> → pestaña <b>Automatización</b> → <b>+</b> → <b>Entrenamiento</b> → «Al terminar» (todos los tipos).</li>
+    <li>Añade la acción <b>Obtener contenido de URL</b> con esta dirección: <code>${esc(location.origin)}/api/workout</code></li>
+    <li>Método <b>POST</b>. Encabezados: <code>Authorization</code> = <code>Bearer</code> + tu código de acceso, y <code>Content-Type</code> = <code>application/json</code>.</li>
+    <li>Cuerpo <b>JSON</b> con estos campos: <code>type</code> = <i>Tipo de entrenamiento</i>, <code>minutes</code> = <i>Duración</i> (en minutos), <code>km</code> = <i>Distancia</i> (en km) e <code>id</code> = <i>Fecha de inicio</i>.</li>
+    <li>Desactiva «Preguntar antes de ejecutar». Listo.</li></ol>
+    <p class="mut" data-fit-last>${(() => { const w = Object.keys(S.days).sort().reverse().map(k => (S.days[k].workouts || []).slice(-1)[0] && [k, (S.days[k].workouts || []).slice(-1)[0]]).find(Boolean); return w ? `Último entrenamiento recibido: ${esc(w[1].type)} · ${w[1].mins} min${w[1].km ? ' · ' + w[1].km + ' km' : ''} (${w[0]}).` : 'Todavía no ha llegado ningún entrenamiento.'; })()}</p></div>
   <div class="card" id="calcard"><b>Google Calendar</b><p class="mut">Tus reuniones aparecen en el banner de Hoy y en los avisos. En Google Calendar abre <i>Configuración del calendario → Integrar calendario → Dirección secreta en formato iCal</i> y pégala aquí. Solo se lee; no se cambia nada en tu calendario.</p>
     <p class="mut" data-cal-status>${Store.mode === 'api' ? (S.calConfigured ? `Conectado · ${calEvents.length} ${calEvents.length === 1 ? 'evento' : 'eventos'} hoy` : 'Sin conectar') : 'Disponible en la app desplegada en Cloudflare.'}</p>
     ${Store.mode === 'api' ? `<input id="set-cal" type="url" inputmode="url" autocomplete="off" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics"><div class="gap"></div><button class="cb-btn cb-btn--secondary" data-act="calsave">Conectar calendario</button>${S.calConfigured ? '<div class="gap"></div><button class="cb-btn cb-btn--ghost" data-act="caldel">Desconectar</button>' : ''}` : ''}</div>
@@ -1082,7 +1109,12 @@ document.addEventListener('click', e => {
   switch (act) {
     case 'rclose': case 'gcancel': closeSheet(); break;
     case 'reminders': openReminders(); break;
-    case 'intake': openIntake(); break;
+    case 'quiz': startQuiz(); break;
+    case 'qzadd': quizAdd(); break;
+    case 'qzrm': removeTask(id); render(); break;
+    case 'qznext': qz.i++; render(); window.scrollTo(0, 0); break;
+    case 'qzback': if (qz.i > 0) qz.i--; else qz = null; render(); window.scrollTo(0, 0); break;
+    case 'qzend': if (qz && qz.i >= qz.days.length) S.settings.intakeDone = thisMon(); qz = null; save(); render(); window.scrollTo(0, 0); break;
     case 'actset': { const it = agendaItems().find(x => x.id === id); if (it) setAct(it, el.dataset.v); break; }
     case 'agadd': {
       const t = ($('#ag-t').value || '').trim(), f = $('#ag-f').value, e = $('#ag-e').value;
@@ -1100,15 +1132,6 @@ document.addEventListener('click', e => {
     }
     case 'caldel': fetch('api/calendar', { method: 'DELETE', headers: { Authorization: 'Bearer ' + Store.token() } }).then(() => { calEvents = []; S.calConfigured = false; render(); toast('Calendario desconectado'); }); break;
     case 'intakesnooze': S.settings.intakeSnooze = todayStr(); save(); render(); break;
-    case 'itkparse': {
-      const el = $('#itk-text'); if (el) itk.text = el.value;
-      if (!itk.text.trim()) { toast('Dime o escribe tus tareas primero'); break; }
-      itk.items = Intake.parseTasks(itk.text, todayIdx()); drawIntake(); break;
-    }
-    case 'itkback': itk.items = null; drawIntake(); break;
-    case 'itkrm': itk.items.splice(+id, 1); drawIntake(); break;
-    case 'itkadd': addIntakeTasks(); break;
-    case 'itkclose': itk = null; closeSheet(); break;
     case 'rdone': { toggleReminder(id); const open = !$('#overlay').hidden; render(); if (open) keepScroll(openReminders); break; }
     case 'radd': openReminderEditor(null); break;
     case 'redit': openReminderEditor(id); break;
@@ -1180,22 +1203,9 @@ document.addEventListener('click', e => {
       else if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => toast('Copiado'));
       break;
     }
-    case 'jr': {
-      const j = JOURNAL[+id], r = rec(todayStr());
-      openSheet(`<h1>${j.t}</h1><p class="mut">${j.q}</p><textarea id="jn" rows="4" placeholder="Escribe aquí">${esc((r.notes || {})[j.id] || '')}</textarea><button class="cb-btn" id="jsave">Guardar</button><button class="cb-btn cb-btn--secondary" id="jclose">Cerrar</button>`);
-      $('#jclose').onclick = closeSheet;
-      $('#jsave').onclick = () => {
-        const v = $('#jn').value.trim(); if (!v) { toast('Escribe algo primero'); return; }
-        r.notes = r.notes || {};
-        const first = !r.notes[j.id]; r.notes[j.id] = v; closeSheet();
-        if (first) addXP(5); save(); render();
-      };
-      break;
-    }
     case 'fab': openTaskEditor(null, {}); break;
-    case 'tadd': { if (/^d\d$/.test(id)) openTaskEditor(null, { day: +id[1], showDay: true }); else openTaskEditor(null, { block: id }); break; }
+    case 'tadd': { if (/^d\d$/.test(id)) openTaskEditor(null, { day: +id[1], showDay: true }); else openTaskEditor(null, {}); break; }
     case 'tedit': openTaskEditor(id, { showDay: tab === 'semana' }); break;
-    case 'tblock': ted.draft.block = id; drawTaskEditor(); break;
     case 'tsave': saveTaskEditor(); break;
     case 'tdel1': ted.confirm = true; drawTaskEditor(); break;
     case 'tdel0': ted.confirm = false; drawTaskEditor(); break;
@@ -1212,7 +1222,7 @@ document.addEventListener('click', e => {
       chk.moved.push({ t: f.t.title, when: o.label, p: PRIO[chk.prio][0].toLowerCase() });
       moveTask(chk.open, chk.day, chk.prio); chk.open = null; render(); drawCheck(); break;
     }
-    case 'ckclose': closeSheet(); render(); break;
+    case 'ckclose': { const n = $('#ck-note'); if (n && n.value.trim() !== ((rec(todayStr()).notes || {}).dia || '')) { const r = rec(todayStr()); (r.notes = r.notes || {}).dia = n.value.trim(); save(); } closeSheet(); render(); break; }
     case 'setsec': setSec = id; render(); window.scrollTo(0, 0); break;
     case 'notif': enableNotif(); break;
     case 'ics': downloadFile('cumbre-alarmas.ics', 'text/calendar', makeICS()); break;
@@ -1239,6 +1249,7 @@ document.addEventListener('pointerup', endPeek);
 document.addEventListener('pointercancel', endPeek);
 document.addEventListener('contextmenu', e => { if (e.target.closest('[data-peek]')) e.preventDefault(); });
 document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target && e.target.id === 'qz-t') { e.preventDefault(); quizAdd(); return; }
   const b = e.target.closest && e.target.closest('[data-peek]');
   if (b && (e.key === 'i' || (e.key === 'Enter' && e.shiftKey))) { e.preventDefault(); showPeek(b); }
   else if (e.key === 'Escape') { hidePeek(); peeked = false; }
@@ -1248,20 +1259,20 @@ document.addEventListener('keyup', e => { if (e.key === 'i' || e.key === 'Shift'
 document.addEventListener('input', e => {
   if (e.target.dataset.gb && ged) setGoalDraft(e.target);
   if (e.target.dataset.rb && red) setRemDraft(e.target);
-  if (e.target.dataset.ib && itk && itk.items) { const [i, k] = e.target.dataset.ib.split('.'); const t = itk.items[+i]; if (t) t[k] = (k === 'title' || k === 'block') ? e.target.value : +e.target.value; }
   if (e.target.dataset.tb && ted) ted.draft[e.target.dataset.tb] = e.target.dataset.tb === 'day' ? +e.target.value : e.target.value;
   if (e.target.id === 'pf-name') { S.settings.name = e.target.value.trim() || 'Esteban'; save(); }
   if (e.target.id === 'set-chk') { S.settings.checkAt = e.target.value; save(); }
   if (e.target.id === 'set-mam') { S.settings.moodAM = e.target.value; save(); }
   if (e.target.id === 'set-mpm') { S.settings.moodPM = e.target.value; save(); }
   if (e.target.id === 'set-bed') { S.settings.bedtime = e.target.value; save(); }
+  if (e.target.id === 'set-exs') { S.settings.exSessions = Math.max(1, +e.target.value || 3); save(); }
+  if (e.target.id === 'set-exm') { S.settings.exMins = Math.max(10, +e.target.value || 90); save(); }
   if (e.target.id === 'set-redes') { S.settings.redes = +e.target.value || 0; save(); }
 });
 document.addEventListener('change', e => {
   if (e.target.dataset.ag || e.target.dataset.agx) setAgenda(e.target);
   if (e.target.dataset.gb && ged) setGoalDraft(e.target);
   if (e.target.dataset.rb && red) setRemDraft(e.target);
-  if (e.target.dataset.ib && itk && itk.items) { const [i, k] = e.target.dataset.ib.split('.'); const t = itk.items[+i]; if (t) t[k] = (k === 'title' || k === 'block') ? e.target.value : +e.target.value; }
   if (e.target.dataset.tb && ted) ted.draft[e.target.dataset.tb] = e.target.dataset.tb === 'day' ? +e.target.value : e.target.value;
   if (e.target.id === 'pf-tone') { S.settings.tonePref = e.target.value; save(); toast('Guardado'); }
   if (e.target.id === 'pf-tz') { const tz = e.target.value.trim() || C.tz; try { new Intl.DateTimeFormat('en-GB', { timeZone: tz }); S.settings.tz = tz; save(); toast('Zona horaria guardada'); } catch (x) { toast('Esa zona horaria no existe'); } }

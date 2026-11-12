@@ -734,6 +734,16 @@
    "scene": "work"
   },
   {
+   "id": "almuerzo",
+   "t": "Almuerzo",
+   "from": "12:30",
+   "to": "13:30",
+   "kind": "fixed",
+   "slot": "lunch",
+   "ico": "home",
+   "scene": "lunch"
+  },
+  {
    "id": "med",
    "t": "Meditar",
    "from": "07:00",

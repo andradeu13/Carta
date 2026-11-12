@@ -1,7 +1,8 @@
 /* Rutas /api/*. Todo lo que cambia datos exige el token; responder desde una notificación exige la firma. */
 import { bearerOk, verifyAnswer } from './auth.js';
 import { DOC_RE, getDoc, putDoc, listDocs, getSub } from './kv.js';
-import { handleAnswer } from './answer.js';
+import { handleAnswer, complete } from './answer.js';
+import { getContent } from './content.js';
 import { sendPush } from './push.js';
 import { calEvents, validCalUrl, resetCalCache } from './calendar.js';
 import { localParts } from './schedule.js';
@@ -55,6 +56,27 @@ export async function handle(request, env, ctx, { fetcher, now, calFetcher } = {
         const date = /^\d{4}-\d{2}-\d{2}$/.test(url.searchParams.get('date') || '') ? url.searchParams.get('date') : localParts(nowMs, env.TZ || 'America/Guayaquil').date;
         return json({ date, ...(await calEvents(env, date, nowMs, { fetcher: calFetcher })) });
       }
+    }
+
+    /* Apple Fitness (Atajo de iPhone al terminar un entrenamiento): { type, minutes, km?, id?, date? } con el código de acceso.
+       Si es de correr / caminar y dura 15 min o más, cuenta como el trote del día. */
+    if (path === '/api/workout' && method === 'POST') {
+      const b = await readJson(request, 4000);
+      const num = v => { const n = parseFloat(String(v ?? '').replace(',', '.')); return Number.isFinite(n) ? n : 0; };
+      const minutes = Math.round(num(b.minutes ?? b.duration)), km = Math.round(num(b.km ?? b.distance) * 100) / 100;
+      const type = String(b.type || b.workout || 'Entrenamiento').slice(0, 40);
+      if (minutes < 1 || minutes > 600) return json({ ok: false, error: 'minutos no válidos' }, 400);
+      const date = /^\d{4}-\d{2}-\d{2}$/.test(String(b.date || '')) ? b.date : localParts(nowMs, env.TZ || 'America/Guayaquil').date;
+      const wid = String(b.id || `${type}|${minutes}|${km}`).slice(0, 80);
+      const day = (await getDoc(env, `days/${date}`)) || { habits: {}, tasksDone: 0, mood: 0, sent: 0, replies: 0, demos: 0, sales: 0, revenue: 0 };
+      day.workouts = day.workouts || [];
+      if (day.workouts.some(w => w.wid === wid)) return json({ ok: true, duplicate: true, counted: !!day.habits.trote });
+      const counts = /(run|jog|corr|trot|walk|camin|hik|sender)/i.test(type) && minutes >= 15;
+      day.workouts.push({ wid, type, mins: minutes, km, src: 'apple', at: nowMs });
+      await putDoc(env, `days/${date}`, day, nowMs);
+      let xp = 0;
+      if (counts) xp = await complete(env, await getContent(env, nowMs), date, 'trote', nowMs);
+      return json({ ok: true, counted: counts, xp, date });
     }
 
     if (path === '/api/push/subscribe' && method === 'POST') {

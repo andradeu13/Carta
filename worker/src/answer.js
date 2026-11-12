@@ -6,7 +6,7 @@ import { localParts, mondayOf, RETRY_MS, START } from './schedule.js';
 const newDay = () => ({ habits: {}, tasksDone: 0, mood: 0, sent: 0, replies: 0, demos: 0, sales: 0, revenue: 0 });
 
 /* Marca una misión como hecha; devuelve los XP sumados (0 si ya estaba hecha o no existe). */
-async function complete(env, content, date, id, nowMs) {
+export async function complete(env, content, date, id, nowMs) {
   const day = (await getDoc(env, `days/${date}`)) || newDay();
   const hour = +(localParts(nowMs, env.TZ || 'America/Guayaquil').secs / 3600).toFixed(2);
   let xp = 0;

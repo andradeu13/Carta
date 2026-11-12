@@ -186,3 +186,17 @@ test('objetivos: una lápida reemplaza al documento y se sincroniza (no reaparec
   const since = await sj(await call(env, 'GET', '/api/docs?since=1999'));
   assert.deepEqual(Object.keys(since.docs), ['goals/g1']);
 });
+
+test('Apple Fitness: un entrenamiento de correr cuenta como el trote, una sola vez, y exige el código', async () => {
+  const { env } = await setup();
+  const body = { type: 'Correr', minutes: '32', km: '5,2', id: 'w1', date: DATE };
+  assert.equal((await sj(await call(env, 'POST', '/api/workout', body, null))).status, 401);
+  assert.equal((await sj(await call(env, 'POST', '/api/workout', { type: 'Correr', minutes: 0 }, undefined, at('19:00')))).status, 400);
+  const r = await sj(await call(env, 'POST', '/api/workout', body, undefined, at('19:00')));
+  assert.equal(r.ok, true); assert.equal(r.counted, true); assert.equal(r.xp, 25);
+  const day = await getDoc(env, `days/${DATE}`);
+  assert.equal(day.habits.trote, true); assert.equal(day.acts.trote.st, 'done'); assert.equal(day.workouts[0].km, 5.2); assert.equal(day.workouts[0].mins, 32);
+  assert.equal((await sj(await call(env, 'POST', '/api/workout', body, undefined, at('19:01')))).duplicate, true, 'no se cuenta dos veces');
+  const y = await sj(await call(env, 'POST', '/api/workout', { type: 'Yoga', minutes: 40, id: 'w2', date: DATE }, undefined, at('20:00')));
+  assert.equal(y.counted, false, 'yoga se guarda pero no es trote'); assert.equal((await getDoc(env, `days/${DATE}`)).workouts.length, 2);
+});
